@@ -1,7 +1,7 @@
 
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import BookCustomizer from "@/components/BookCustomizer";
+import CustomizationOptions from "@/components/CustomizationOptions";
 import AboutSection from "@/components/AboutSection";
 import SamplePages from "@/components/SamplePages";
 import FAQ from "@/components/FAQ";
@@ -16,7 +16,7 @@ const Index = () => {
         <Navbar />
         <main className="flex-grow">
           <Hero />
-          <BookCustomizer />
+          <CustomizationOptions />
           <AboutSection />
           <SamplePages />
           <FAQ />

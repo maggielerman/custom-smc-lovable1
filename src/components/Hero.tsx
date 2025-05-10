@@ -1,9 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useBookContext } from "@/context/BookContext";
+import { useNavigate } from "react-router-dom";
 
 const Hero: React.FC = () => {
   const { openPreview } = useBookContext();
+  const navigate = useNavigate();
   
   return (
     <section className="bg-gradient-to-b from-white to-soft-blue/10 py-16 md:py-24">
@@ -19,12 +21,7 @@ const Hero: React.FC = () => {
           <div className="flex flex-wrap gap-4">
             <Button 
               className="bg-book-red hover:bg-red-400 text-white text-lg py-6 px-8 rounded-full"
-              onClick={() => {
-                const customizeSection = document.getElementById("customize");
-                if (customizeSection) {
-                  customizeSection.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
+              onClick={() => navigate("/create")}
             >
               Create Your Book
             </Button>

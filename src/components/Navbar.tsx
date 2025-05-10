@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -16,29 +18,30 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <a href="/" className="flex-shrink-0 flex items-center">
+            <Link to="/" className="flex-shrink-0 flex items-center">
               <span className="text-2xl font-bold text-book-red">Little Origins</span>
               <span className="ml-2 text-lg font-medium text-gray-500">Books</span>
-            </a>
+            </Link>
           </div>
           
           {/* Desktop menu */}
           <div className="hidden md:flex md:items-center md:space-x-8">
-            <a href="#customize" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
-              Customize
-            </a>
-            <a href="#about" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
+            <Link to="/create" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
+              Create Book
+            </Link>
+            <Link to="/#about" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               About
-            </a>
-            <a href="#sample" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
+            </Link>
+            <Link to="/#sample" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               Sample Pages
-            </a>
-            <a href="#faq" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
+            </Link>
+            <Link to="/#faq" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               FAQ
-            </a>
+            </Link>
             <Button 
               className="ml-4 bg-book-red hover:bg-red-400 text-white rounded-full" 
               size="sm"
+              onClick={() => navigate("/create")}
             >
               Start Creating
             </Button>
@@ -63,37 +66,41 @@ const Navbar: React.FC = () => {
         mobileMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
       )}>
         <div className="px-2 pt-2 pb-4 space-y-1 bg-white sm:px-3">
-          <a
-            href="#customize"
+          <Link
+            to="/create"
             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Customize
-          </a>
-          <a
-            href="#about"
+            Create Book
+          </Link>
+          <Link
+            to="/#about"
             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
             onClick={() => setMobileMenuOpen(false)}
           >
             About
-          </a>
-          <a
-            href="#sample"
+          </Link>
+          <Link
+            to="/#sample"
             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
             onClick={() => setMobileMenuOpen(false)}
           >
             Sample Pages
-          </a>
-          <a
-            href="#faq"
+          </Link>
+          <Link
+            to="/#faq"
             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
             onClick={() => setMobileMenuOpen(false)}
           >
             FAQ
-          </a>
+          </Link>
           <Button 
             className="w-full mt-3 bg-book-red hover:bg-red-400 text-white rounded-full" 
             size="sm"
+            onClick={() => {
+              navigate("/create");
+              setMobileMenuOpen(false);
+            }}
           >
             Start Creating
           </Button>
