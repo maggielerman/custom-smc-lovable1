@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Define a proper interface for our page objects
+interface BookPage {
+  title: string;
+  content: string;
+  color: string;
+  emoji?: string; // Make emoji optional
+}
+
 const BookPreview: React.FC = () => {
   const { 
     isPreviewOpen, 
@@ -18,8 +26,8 @@ const BookPreview: React.FC = () => {
   const [currentPage, setCurrentPage] = React.useState(0);
   
   // Generate appropriate pages based on the customization options
-  const generatePages = () => {
-    const pages = [
+  const generatePages = (): BookPage[] => {
+    const pages: BookPage[] = [
       // Introduction page
       {
         title: `${childName ? childName + "'s" : "Your"} Special Story`,
