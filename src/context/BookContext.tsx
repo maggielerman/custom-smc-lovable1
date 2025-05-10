@@ -16,6 +16,16 @@ interface BookContextType {
   childAge: string;
   setChildAge: (age: string) => void;
   
+  // Donor and surrogacy options
+  usedDonorEgg: boolean;
+  setUsedDonorEgg: (used: boolean) => void;
+  usedDonorSperm: boolean;
+  setUsedDonorSperm: (used: boolean) => void;
+  usedDonorEmbryo: boolean;
+  setUsedDonorEmbryo: (used: boolean) => void;
+  usedSurrogate: boolean;
+  setUsedSurrogate: (used: boolean) => void;
+  
   // Preview state
   isPreviewOpen: boolean;
   openPreview: () => void;
@@ -30,6 +40,12 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [familyStructure, setFamilyStructure] = useState<FamilyStructure>('hetero-couple');
   const [childName, setChildName] = useState("");
   const [childAge, setChildAge] = useState("3-5");
+  
+  // Donor and surrogacy options
+  const [usedDonorEgg, setUsedDonorEgg] = useState(false);
+  const [usedDonorSperm, setUsedDonorSperm] = useState(false);
+  const [usedDonorEmbryo, setUsedDonorEmbryo] = useState(false);
+  const [usedSurrogate, setUsedSurrogate] = useState(false);
   
   // Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -48,6 +64,14 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setChildName,
         childAge,
         setChildAge,
+        usedDonorEgg,
+        setUsedDonorEgg,
+        usedDonorSperm,
+        setUsedDonorSperm,
+        usedDonorEmbryo,
+        setUsedDonorEmbryo,
+        usedSurrogate,
+        setUsedSurrogate,
         isPreviewOpen,
         openPreview,
         closePreview,
