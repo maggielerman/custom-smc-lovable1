@@ -34,6 +34,13 @@
     --ring: 222.2 84% 4.9%;
 
     --radius: 1rem;
+    
+    --book-red: 0 78% 67%;
+    --book-green: 142 72% 29%;
+    --gentle-pink: 340 100% 90%;
+    --soft-blue: 199 80% 74%;
+    --calm-yellow: 60 80% 90%;
+    --soft-purple: 270 80% 90%;
   }
 
   .dark {
@@ -87,5 +94,18 @@
   
   .book-cover:hover {
     transform: rotateY(10deg);
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
   }
 }

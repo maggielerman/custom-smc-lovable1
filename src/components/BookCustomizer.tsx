@@ -1,20 +1,41 @@
 
-import { useState } from "react";
+import { useBookContext } from "@/context/BookContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-type ConceptionType = 'iui' | 'ivf' | 'donor-egg' | 'donor-sperm' | 'donor-embryo';
-type FamilyStructure = 'hetero-couple' | 'single-mom' | 'single-dad' | 'two-moms' | 'two-dads';
+import { toast } from "sonner";
 
 const BookCustomizer: React.FC = () => {
-  const [conceptionType, setConceptionType] = useState<ConceptionType>('ivf');
-  const [familyStructure, setFamilyStructure] = useState<FamilyStructure>('hetero-couple');
-  const [childName, setChildName] = useState("");
-  const [childAge, setChildAge] = useState("3-5");
+  const { 
+    conceptionType, 
+    setConceptionType, 
+    familyStructure, 
+    setFamilyStructure,
+    childName,
+    setChildName,
+    childAge,
+    setChildAge,
+    openPreview
+  } = useBookContext();
+  
+  const handlePreviewClick = () => {
+    if (!childName.trim()) {
+      toast.warning("Please enter your child's name for a personalized preview");
+      return;
+    }
+    openPreview();
+  };
+
+  const handleCreateBookClick = () => {
+    if (!childName.trim()) {
+      toast.warning("Please enter your child's name to create your book");
+      return;
+    }
+    toast.success("Your book has been added to cart!");
+  };
   
   return (
     <section id="customize" className="py-16 md:py-24 bg-soft-purple/20">
@@ -50,7 +71,7 @@ const BookCustomizer: React.FC = () => {
                       <Label htmlFor="conception">Conception Type</Label>
                       <Select 
                         value={conceptionType} 
-                        onValueChange={(value) => setConceptionType(value as ConceptionType)}
+                        onValueChange={(value) => setConceptionType(value as any)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select conception type" />
@@ -100,7 +121,7 @@ const BookCustomizer: React.FC = () => {
                       <Label htmlFor="family">Family Structure</Label>
                       <Select 
                         value={familyStructure} 
-                        onValueChange={(value) => setFamilyStructure(value as FamilyStructure)}
+                        onValueChange={(value) => setFamilyStructure(value as any)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select family structure" />
@@ -127,7 +148,10 @@ const BookCustomizer: React.FC = () => {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-center pt-4">
-                  <Button className="bg-book-green hover:bg-green-400 text-white w-full md:w-auto">
+                  <Button 
+                    className="bg-book-green hover:bg-green-400 text-white w-full md:w-auto"
+                    onClick={handlePreviewClick}
+                  >
                     Preview Your Book
                   </Button>
                 </CardFooter>
@@ -144,6 +168,7 @@ const BookCustomizer: React.FC = () => {
             </div>
             <Button 
               className="bg-book-red hover:bg-red-400 text-white text-lg py-6 px-10 rounded-full"
+              onClick={handleCreateBookClick}
             >
               Create Your Custom Book
             </Button>

@@ -1,7 +1,10 @@
 
 import { Button } from "@/components/ui/button";
+import { useBookContext } from "@/context/BookContext";
 
 const Hero: React.FC = () => {
+  const { openPreview } = useBookContext();
+  
   return (
     <section className="bg-gradient-to-b from-white to-soft-blue/10 py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center">
@@ -16,14 +19,21 @@ const Hero: React.FC = () => {
           <div className="flex flex-wrap gap-4">
             <Button 
               className="bg-book-red hover:bg-red-400 text-white text-lg py-6 px-8 rounded-full"
+              onClick={() => {
+                const customizeSection = document.getElementById("customize");
+                if (customizeSection) {
+                  customizeSection.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
             >
               Create Your Book
             </Button>
             <Button 
               variant="outline"
               className="border-book-red text-book-red hover:bg-book-red/10 text-lg py-6 px-8 rounded-full"
+              onClick={openPreview}
             >
-              Learn More
+              See Example
             </Button>
           </div>
         </div>
