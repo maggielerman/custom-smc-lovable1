@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Family, Baby, Egg, Dna } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Family, Baby, Egg, Dna, Users } from "lucide-react";
 
 // Define step types
 type StepType = "family-structure" | "conception-type" | "donor-options" | "surrogacy" | "child-details" | "review";
@@ -152,7 +151,7 @@ const BookCustomizer: React.FC = () => {
                 <CardHeader className="bg-gradient-to-r from-soft-blue/20 to-calm-yellow/20 rounded-t-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-book-red text-white flex items-center justify-center">
-                      <Family size={20} />
+                      <Users size={20} />
                     </div>
                     <div>
                       <CardTitle>Family Structure</CardTitle>
