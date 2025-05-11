@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Family, Baby, Egg, Dna, Users } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Users, Baby, Egg, Dna } from "lucide-react";
 
 // Define step types
 type StepType = "family-structure" | "conception-type" | "donor-options" | "surrogacy" | "child-details" | "review";
