@@ -1,14 +1,17 @@
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (itemId: string) => void;
+  clearCart: () => void;
+  saveCartWithName: (name: string) => Promise<void>;
   cartTotal: number;
   cartCount: number;
 }
@@ -18,6 +21,39 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { user } = useAuth();
+
+  // Load cart from Supabase when user signs in
+  useEffect(() => {
+    if (user) {
+      loadCart();
+    }
+  }, [user]);
+
+  // Load cart from Supabase
+  const loadCart = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('saved_carts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Load the most recent cart
+        const items = data[0].items as CartItem[];
+        if (items && items.length > 0) {
+          setCartItems(items);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+    }
+  };
 
   // Save cart to Supabase
   const saveCart = async (items: CartItem[]) => {
@@ -60,16 +96,48 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error saving cart:', error);
     }
   };
+  
+  // Save cart with a specific name
+  const saveCartWithName = async (name: string) => {
+    if (!user) {
+      toast.error("Please sign in to save carts");
+      return;
+    }
+    
+    if (cartItems.length === 0) {
+      toast.error("Cannot save an empty cart");
+      return;
+    }
+    
+    try {
+      const totalAmount = cartItems.reduce((total, item) => total + item.price, 0);
+      const itemsJson = cartItems as unknown as Json;
+      
+      await supabase
+        .from('saved_carts')
+        .insert({
+          user_id: user.id,
+          name,
+          items: itemsJson,
+          total_amount: totalAmount
+        });
+        
+      toast.success("Cart saved successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Error saving cart");
+    }
+  };
 
   // Cart functions
   const addToCart = (item: CartItem) => {
     // Check if item already exists in cart
     const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
     if (!existingItem) {
-      setCartItems([...cartItems, item]);
+      const updatedCart = [...cartItems, item];
+      setCartItems(updatedCart);
       
       // If user is logged in, try to save cart to Supabase
-      saveCart([...cartItems, item]);
+      if (user) saveCart(updatedCart);
     }
   };
   
@@ -78,7 +146,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartItems(updatedCart);
     
     // If user is logged in, update saved cart
-    saveCart(updatedCart);
+    if (user) saveCart(updatedCart);
+  };
+  
+  const clearCart = () => {
+    setCartItems([]);
+    
+    // If user is logged in, update saved cart
+    if (user) saveCart([]);
   };
 
   // Calculate cart total
@@ -93,6 +168,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cartItems,
         addToCart,
         removeFromCart,
+        clearCart,
+        saveCartWithName,
         cartTotal,
         cartCount
       }}
