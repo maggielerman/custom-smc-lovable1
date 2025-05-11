@@ -1,14 +1,16 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import Cart from './cart/Cart';
+import { useAuth } from '@/context/AuthContext';
 
 const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -30,6 +32,9 @@ const Navbar: React.FC = () => {
             <Link to="/create" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               Create Book
             </Link>
+            <Link to="/blog" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
+              Blog
+            </Link>
             <Link to="/#about" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               About
             </Link>
@@ -40,6 +45,28 @@ const Navbar: React.FC = () => {
               FAQ
             </Link>
             <Cart className="mr-2" />
+            
+            {user ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => navigate("/profile")}
+              >
+                <User size={18} />
+                <span>Account</span>
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => navigate("/auth")}
+                variant="outline"
+                size="sm"
+                className="text-book-red border-book-red hover:bg-book-red/10"
+              >
+                Sign In
+              </Button>
+            )}
+            
             <Button 
               className="bg-book-red hover:bg-red-400 text-white rounded-full" 
               size="sm"
@@ -66,7 +93,7 @@ const Navbar: React.FC = () => {
       {/* Mobile menu */}
       <div className={cn(
         "md:hidden transition-all duration-300 ease-in-out",
-        mobileMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        mobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
       )}>
         <div className="px-2 pt-2 pb-4 space-y-1 bg-white sm:px-3">
           <Link
@@ -75,6 +102,13 @@ const Navbar: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
           >
             Create Book
+          </Link>
+          <Link
+            to="/blog"
+            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Blog
           </Link>
           <Link
             to="/#about"
@@ -97,6 +131,25 @@ const Navbar: React.FC = () => {
           >
             FAQ
           </Link>
+          
+          {user ? (
+            <Link
+              to="/profile"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              My Account
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Sign In
+            </Link>
+          )}
+          
           <Button 
             className="w-full mt-3 bg-book-red hover:bg-red-400 text-white rounded-full" 
             size="sm"

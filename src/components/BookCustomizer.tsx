@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Users, Baby, Egg, Dna, ShoppingCart } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Users, Baby, Egg, Dna, ShoppingCart, Save } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // Define step types
 type StepType = "family-structure" | "conception-type" | "donor-options" | "surrogacy" | "child-details" | "review";
@@ -26,17 +27,23 @@ const BookCustomizer: React.FC = () => {
     setChildAge,
     openPreview,
     addToCart,
-    openCheckout
+    openCheckout,
+    usedDonorEgg,
+    setUsedDonorEgg,
+    usedDonorSperm,
+    setUsedDonorSperm,
+    usedDonorEmbryo,
+    setUsedDonorEmbryo,
+    usedSurrogate,
+    setUsedSurrogate,
+    saveDraft
   } = useBookContext();
+  
+  const { user } = useAuth();
   
   // Add state for the current step
   const [currentStep, setCurrentStep] = useState<StepType>("family-structure");
-  
-  // Add state for donor and surrogacy options
-  const [usedDonorEgg, setUsedDonorEgg] = useState(false);
-  const [usedDonorSperm, setUsedDonorSperm] = useState(false);
-  const [usedDonorEmbryo, setUsedDonorEmbryo] = useState(false);
-  const [usedSurrogate, setUsedSurrogate] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   
   const handlePreviewClick = () => {
     if (!childName.trim()) {
@@ -76,6 +83,20 @@ const BookCustomizer: React.FC = () => {
     
     // Then open checkout
     openCheckout();
+  };
+  
+  const handleSaveDraft = async () => {
+    if (!user) {
+      toast.error("Please sign in to save your draft");
+      return;
+    }
+    
+    try {
+      setSavingDraft(true);
+      await saveDraft();
+    } finally {
+      setSavingDraft(false);
+    }
   };
   
   // Function to navigate to next step
@@ -662,14 +683,26 @@ const BookCustomizer: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="text-center">
+                        <div className="text-center space-y-2">
                           <Button 
                             variant="outline" 
-                            className="border-book-red text-book-red hover:bg-book-red/10 mb-2"
+                            className="border-book-red text-book-red hover:bg-book-red/10 mb-2 w-full"
                             onClick={handlePreviewClick}
                           >
                             Preview Book
                           </Button>
+                          
+                          {user && (
+                            <Button
+                              variant="outline"
+                              className="border-book-green text-book-green hover:bg-book-green/10 w-full"
+                              onClick={handleSaveDraft}
+                              disabled={savingDraft}
+                            >
+                              <Save className="h-4 w-4 mr-2" />
+                              {savingDraft ? "Saving..." : "Save Draft"}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -711,21 +744,35 @@ const BookCustomizer: React.FC = () => {
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
               
-              {isLastStep ? (
-                <Button 
-                  className="bg-book-red hover:bg-red-600 text-white"
-                  onClick={handleAddToCartClick}
-                >
-                  Add to Cart
-                </Button>
-              ) : (
-                <Button 
-                  onClick={nextStep} 
-                  className="bg-book-red hover:bg-red-600 text-white flex items-center gap-2"
-                >
-                  Continue <ArrowRight className="h-4 w-4" />
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {!isFirstStep && !isLastStep && user && (
+                  <Button
+                    variant="outline"
+                    className="border-book-green text-book-green hover:bg-book-green/10 flex items-center gap-2"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft}
+                  >
+                    <Save className="h-4 w-4" />
+                    {savingDraft ? "Saving..." : "Save Draft"}
+                  </Button>
+                )}
+                
+                {isLastStep ? (
+                  <Button 
+                    className="bg-book-red hover:bg-red-600 text-white"
+                    onClick={handleAddToCartClick}
+                  >
+                    Add to Cart
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={nextStep} 
+                    className="bg-book-red hover:bg-red-600 text-white flex items-center gap-2"
+                  >
+                    Continue <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardFooter>
           </Card>
         </div>
