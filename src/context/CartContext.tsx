@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/types/bookTypes";
@@ -48,7 +47,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cartData = data[0];
         if (cartData.items && Array.isArray(cartData.items)) {
           // Double-cast to safely convert from Json to CartItem[]
-          const items = (cartData.items as unknown) as CartItem[];
+          const items = (cartData.items as any) as CartItem[];
           if (items.length > 0) {
             setCartItems(items);
           }

@@ -46,8 +46,8 @@ export default function SavedCartsSection() {
       // Type conversion - ensure items are properly typed as CartItem[]
       const typedCarts: SavedCart[] = data?.map(cart => ({
         ...cart,
-        // First cast to unknown, then to CartItem[] to avoid direct type assertions
-        items: Array.isArray(cart.items) ? (cart.items as unknown) as CartItem[] : []
+        // Cast to any first to avoid TypeScript errors with Json type
+        items: Array.isArray(cart.items) ? (cart.items as any) as CartItem[] : []
       })) || [];
       
       setSavedCarts(typedCarts);
