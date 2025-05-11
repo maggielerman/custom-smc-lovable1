@@ -44,10 +44,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Load the most recent cart
-        const items = data[0].items as CartItem[];
-        if (items && items.length > 0) {
-          setCartItems(items);
+        // Load the most recent cart and ensure items are properly typed
+        const cartData = data[0];
+        if (cartData.items && Array.isArray(cartData.items)) {
+          // Type assertion after verifying it's an array
+          const items = cartData.items as CartItem[];
+          if (items.length > 0) {
+            setCartItems(items);
+          }
         }
       }
     } catch (error) {
@@ -62,10 +66,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
       
-      // Properly handle the CartItem[] to Json conversion for Supabase
-      // This addresses the TypeScript error by explicitly casting to Json
-      const itemsJson = items as unknown as Json;
-      
       // Check if user has a saved cart
       const { data: existingCarts } = await supabase
         .from('saved_carts')
@@ -77,7 +77,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase
           .from('saved_carts')
           .update({
-            items: itemsJson,
+            items: items as unknown as Json,
             total_amount: totalAmount,
             updated_at: new Date().toISOString()
           })
@@ -88,7 +88,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('saved_carts')
           .insert({
             user_id: user.id,
-            items: itemsJson,
+            items: items as unknown as Json,
             total_amount: totalAmount
           });
       }
@@ -111,14 +111,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const totalAmount = cartItems.reduce((total, item) => total + item.price, 0);
-      const itemsJson = cartItems as unknown as Json;
       
       await supabase
         .from('saved_carts')
         .insert({
           user_id: user.id,
           name,
-          items: itemsJson,
+          items: cartItems as unknown as Json,
           total_amount: totalAmount
         });
         

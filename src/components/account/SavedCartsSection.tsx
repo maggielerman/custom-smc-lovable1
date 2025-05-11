@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
+import { CartItem } from "@/types/bookTypes";
 
 interface SavedCart {
   id: string;
   name: string | null;
-  items: any[];
+  items: CartItem[];
   total_amount: number;
   created_at: string;
   updated_at: string;
@@ -41,7 +42,13 @@ export default function SavedCartsSection() {
       
       if (error) throw error;
       
-      setSavedCarts(data || []);
+      // Type conversion - ensure items are properly typed as CartItem[]
+      const typedCarts: SavedCart[] = data?.map(cart => ({
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items as CartItem[] : []
+      })) || [];
+      
+      setSavedCarts(typedCarts);
     } catch (error: any) {
       toast.error(error.message || "Error fetching saved carts");
     } finally {
