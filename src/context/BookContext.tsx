@@ -1,328 +1,219 @@
 
-import React, { createContext, useContext, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import React, { useEffect } from "react";
+import { BookCustomizationProvider, useBookCustomization } from "./BookCustomizationContext";
+import { CartProvider, useCart } from "./CartContext";
+import { DraftsProvider, useDrafts } from "./DraftsContext";
+import { SavedDraft } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
-import { Json } from "@/integrations/supabase/types";
 
-// Define types for our book customization
-export type ConceptionType = 'iui' | 'ivf' | 'donor-egg' | 'donor-sperm' | 'donor-embryo';
-export type FamilyStructure = 'hetero-couple' | 'single-mom' | 'single-dad' | 'two-moms' | 'two-dads';
-
-interface CartItem {
-  id: string;
-  title: string;
-  price: number;
-}
-
-interface SavedDraft {
-  id: string;
-  title: string;
-  conception_type: string;
-  family_structure: string;
-  child_name: string | null;
-  child_age: string | null;
-  used_donor_egg: boolean;
-  used_donor_sperm: boolean;
-  used_donor_embryo: boolean;
-  used_surrogate: boolean;
-  created_at: string;
-}
-
+// Create a combined context type that includes all our book-related contexts
 interface BookContextType {
-  // Book details
-  conceptionType: ConceptionType;
-  setConceptionType: (type: ConceptionType) => void;
-  familyStructure: FamilyStructure;
-  setFamilyStructure: (structure: FamilyStructure) => void;
-  childName: string;
-  setChildName: (name: string) => void;
-  childAge: string;
-  setChildAge: (age: string) => void;
+  // BookCustomization properties
+  conceptionType: ReturnType<typeof useBookCustomization>["conceptionType"];
+  setConceptionType: ReturnType<typeof useBookCustomization>["setConceptionType"];
+  familyStructure: ReturnType<typeof useBookCustomization>["familyStructure"];
+  setFamilyStructure: ReturnType<typeof useBookCustomization>["setFamilyStructure"];
+  childName: ReturnType<typeof useBookCustomization>["childName"];
+  setChildName: ReturnType<typeof useBookCustomization>["setChildName"];
+  childAge: ReturnType<typeof useBookCustomization>["childAge"];
+  setChildAge: ReturnType<typeof useBookCustomization>["setChildAge"];
+  usedDonorEgg: ReturnType<typeof useBookCustomization>["usedDonorEgg"];
+  setUsedDonorEgg: ReturnType<typeof useBookCustomization>["setUsedDonorEgg"];
+  usedDonorSperm: ReturnType<typeof useBookCustomization>["usedDonorSperm"];
+  setUsedDonorSperm: ReturnType<typeof useBookCustomization>["setUsedDonorSperm"];
+  usedDonorEmbryo: ReturnType<typeof useBookCustomization>["usedDonorEmbryo"];
+  setUsedDonorEmbryo: ReturnType<typeof useBookCustomization>["setUsedDonorEmbryo"];
+  usedSurrogate: ReturnType<typeof useBookCustomization>["usedSurrogate"];
+  setUsedSurrogate: ReturnType<typeof useBookCustomization>["setUsedSurrogate"];
+  isPreviewOpen: ReturnType<typeof useBookCustomization>["isPreviewOpen"];
+  openPreview: ReturnType<typeof useBookCustomization>["openPreview"];
+  closePreview: ReturnType<typeof useBookCustomization>["closePreview"];
+  isCheckoutOpen: ReturnType<typeof useBookCustomization>["isCheckoutOpen"];
+  openCheckout: ReturnType<typeof useBookCustomization>["openCheckout"];
+  closeCheckout: ReturnType<typeof useBookCustomization>["closeCheckout"];
   
-  // Donor and surrogacy options
-  usedDonorEgg: boolean;
-  setUsedDonorEgg: (used: boolean) => void;
-  usedDonorSperm: boolean;
-  setUsedDonorSperm: (used: boolean) => void;
-  usedDonorEmbryo: boolean;
-  setUsedDonorEmbryo: (used: boolean) => void;
-  usedSurrogate: boolean;
-  setUsedSurrogate: (used: boolean) => void;
+  // Cart properties
+  cartItems: ReturnType<typeof useCart>["cartItems"];
+  addToCart: ReturnType<typeof useCart>["addToCart"];
+  removeFromCart: ReturnType<typeof useCart>["removeFromCart"];
+  cartTotal: ReturnType<typeof useCart>["cartTotal"];
+  cartCount: ReturnType<typeof useCart>["cartCount"];
   
-  // Preview state
-  isPreviewOpen: boolean;
-  openPreview: () => void;
-  closePreview: () => void;
-  
-  // Payment state
-  isCheckoutOpen: boolean;
-  openCheckout: () => void;
-  closeCheckout: () => void;
-  
-  // Cart functionality
-  cartItems: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (itemId: string) => void;
-  cartTotal: number;
-  cartCount: number;
-
-  // Draft functionality
+  // Drafts properties
+  savedDrafts: ReturnType<typeof useDrafts>["savedDrafts"];
+  loadingSavedDrafts: ReturnType<typeof useDrafts>["loadingSavedDrafts"];
   saveDraft: (title?: string) => Promise<void>;
-  savedDrafts: SavedDraft[];
-  loadDraft: (draft: SavedDraft) => void;
-  deleteDraft: (draftId: string) => Promise<void>;
-  loadingSavedDrafts: boolean;
-  fetchSavedDrafts: () => Promise<void>;
+  loadDraft: ReturnType<typeof useDrafts>["loadDraft"];
+  deleteDraft: ReturnType<typeof useDrafts>["deleteDraft"];
+  fetchSavedDrafts: ReturnType<typeof useDrafts>["fetchSavedDrafts"];
 }
 
-const BookContext = createContext<BookContextType | undefined>(undefined);
-
-export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Book details state
-  const [conceptionType, setConceptionType] = useState<ConceptionType>('ivf');
-  const [familyStructure, setFamilyStructure] = useState<FamilyStructure>('hetero-couple');
-  const [childName, setChildName] = useState("");
-  const [childAge, setChildAge] = useState("3-5");
-  
-  // Donor and surrogacy options
-  const [usedDonorEgg, setUsedDonorEgg] = useState(false);
-  const [usedDonorSperm, setUsedDonorSperm] = useState(false);
-  const [usedDonorEmbryo, setUsedDonorEmbryo] = useState(false);
-  const [usedSurrogate, setUsedSurrogate] = useState(false);
-  
-  // Preview state
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  
-  // Checkout state
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  
-  // Cart state
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-
-  // Saved drafts state
-  const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
-  const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
-  
-  // Get current auth user
+// Combined context component that provides a unified API
+const BookContextProvider = ({ children }: { children: React.ReactNode }) => {
+  const bookCustomization = useBookCustomization();
+  const cart = useCart();
+  const drafts = useDrafts();
   const { user } = useAuth();
   
-  const openPreview = () => setIsPreviewOpen(true);
-  const closePreview = () => setIsPreviewOpen(false);
-  
-  const openCheckout = () => setIsCheckoutOpen(true);
-  const closeCheckout = () => setIsCheckoutOpen(false);
-  
-  // Cart functions
-  const addToCart = (item: CartItem) => {
-    // Check if item already exists in cart
-    const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
-    if (!existingItem) {
-      setCartItems([...cartItems, item]);
-      
-      // If user is logged in, try to save cart to Supabase
-      saveCart([...cartItems, item]);
+  // Fetch saved drafts when user logs in
+  useEffect(() => {
+    if (user) {
+      drafts.fetchSavedDrafts();
     }
+  }, [user, drafts.fetchSavedDrafts]);
+  
+  // Create a wrapper for saveDraft to match the old API
+  const saveDraft = (title?: string): Promise<void> => {
+    return drafts.saveDraft(title, {
+      conceptionType: bookCustomization.conceptionType,
+      familyStructure: bookCustomization.familyStructure,
+      childName: bookCustomization.childName,
+      childAge: bookCustomization.childAge,
+      usedDonorEgg: bookCustomization.usedDonorEgg,
+      usedDonorSperm: bookCustomization.usedDonorSperm,
+      usedDonorEmbryo: bookCustomization.usedDonorEmbryo,
+      usedSurrogate: bookCustomization.usedSurrogate
+    });
   };
   
-  const removeFromCart = (itemId: string) => {
-    const updatedCart = cartItems.filter(item => item.id !== itemId);
-    setCartItems(updatedCart);
+  // Handle loading a draft by updating the book customization state
+  const handleLoadDraft = (draft: SavedDraft) => {
+    bookCustomization.setConceptionType(draft.conception_type as ReturnType<typeof useBookCustomization>["conceptionType"]);
+    bookCustomization.setFamilyStructure(draft.family_structure as ReturnType<typeof useBookCustomization>["familyStructure"]);
+    bookCustomization.setChildName(draft.child_name || "");
+    bookCustomization.setChildAge(draft.child_age || "3-5");
+    bookCustomization.setUsedDonorEgg(draft.used_donor_egg);
+    bookCustomization.setUsedDonorSperm(draft.used_donor_sperm);
+    bookCustomization.setUsedDonorEmbryo(draft.used_donor_embryo);
+    bookCustomization.setUsedSurrogate(draft.used_surrogate);
+  };
+  
+  const contextValue: BookContextType = {
+    // Book customization properties
+    conceptionType: bookCustomization.conceptionType,
+    setConceptionType: bookCustomization.setConceptionType,
+    familyStructure: bookCustomization.familyStructure,
+    setFamilyStructure: bookCustomization.setFamilyStructure,
+    childName: bookCustomization.childName,
+    setChildName: bookCustomization.setChildName,
+    childAge: bookCustomization.childAge,
+    setChildAge: bookCustomization.setChildAge,
+    usedDonorEgg: bookCustomization.usedDonorEgg,
+    setUsedDonorEgg: bookCustomization.setUsedDonorEgg,
+    usedDonorSperm: bookCustomization.usedDonorSperm,
+    setUsedDonorSperm: bookCustomization.setUsedDonorSperm,
+    usedDonorEmbryo: bookCustomization.usedDonorEmbryo,
+    setUsedDonorEmbryo: bookCustomization.setUsedDonorEmbryo,
+    usedSurrogate: bookCustomization.usedSurrogate,
+    setUsedSurrogate: bookCustomization.setUsedSurrogate,
+    isPreviewOpen: bookCustomization.isPreviewOpen,
+    openPreview: bookCustomization.openPreview,
+    closePreview: bookCustomization.closePreview,
+    isCheckoutOpen: bookCustomization.isCheckoutOpen,
+    openCheckout: bookCustomization.openCheckout,
+    closeCheckout: bookCustomization.closeCheckout,
     
-    // If user is logged in, update saved cart
-    saveCart(updatedCart);
-  };
-  
-  // Save cart to Supabase
-  const saveCart = async (items: CartItem[]) => {
-    if (!user) return;
+    // Cart properties
+    cartItems: cart.cartItems,
+    addToCart: cart.addToCart,
+    removeFromCart: cart.removeFromCart,
+    cartTotal: cart.cartTotal,
+    cartCount: cart.cartCount,
     
-    try {
-      const totalAmount = items.reduce((total, item) => total + item.price, 0);
-      
-      // Convert CartItem[] to Json for Supabase
-      const itemsJson: Json = items as unknown as Json;
-      
-      // Check if user has a saved cart
-      const { data: existingCarts } = await supabase
-        .from('saved_carts')
-        .select('id')
-        .eq('user_id', user.id);
-        
-      if (existingCarts && existingCarts.length > 0) {
-        // Update existing cart
-        await supabase
-          .from('saved_carts')
-          .update({
-            items: itemsJson,
-            total_amount: totalAmount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingCarts[0].id);
-      } else if (items.length > 0) {
-        // Create new cart if there are items
-        await supabase
-          .from('saved_carts')
-          .insert({
-            user_id: user.id,
-            items: itemsJson,
-            total_amount: totalAmount
-          });
-      }
-    } catch (error) {
-      console.error('Error saving cart:', error);
-    }
+    // Drafts properties
+    savedDrafts: drafts.savedDrafts,
+    loadingSavedDrafts: drafts.loadingSavedDrafts,
+    saveDraft,
+    loadDraft: drafts.loadDraft,
+    deleteDraft: drafts.deleteDraft,
+    fetchSavedDrafts: drafts.fetchSavedDrafts,
   };
-  
-  // Save book draft to Supabase
-  const saveDraft = async (title?: string): Promise<void> => {
-    if (!user) {
-      toast.error("Please sign in to save drafts");
-      return;
-    }
-    
-    try {
-      const draftTitle = title || (childName ? `${childName}'s Story` : "Untitled Draft");
-      
-      const { data, error } = await supabase
-        .from('saved_drafts')
-        .insert({
-          user_id: user.id,
-          title: draftTitle,
-          conception_type: conceptionType,
-          family_structure: familyStructure,
-          child_name: childName || null,
-          child_age: childAge || null,
-          used_donor_egg: usedDonorEgg,
-          used_donor_sperm: usedDonorSperm,
-          used_donor_embryo: usedDonorEmbryo,
-          used_surrogate: usedSurrogate
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      toast.success("Draft saved successfully");
-      
-      // Update local state
-      fetchSavedDrafts();
-    } catch (error: any) {
-      toast.error(error.message || "Error saving draft");
-    }
-  };
-  
-  // Fetch user's saved drafts
-  const fetchSavedDrafts = async () => {
-    if (!user) return;
-    
-    try {
-      setLoadingSavedDrafts(true);
-      const { data, error } = await supabase
-        .from('saved_drafts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setSavedDrafts(data || []);
-    } catch (error: any) {
-      console.error('Error fetching drafts:', error);
-    } finally {
-      setLoadingSavedDrafts(false);
-    }
-  };
-  
-  // Load a saved draft
-  const loadDraft = (draft: SavedDraft) => {
-    setConceptionType(draft.conception_type as ConceptionType);
-    setFamilyStructure(draft.family_structure as FamilyStructure);
-    setChildName(draft.child_name || "");
-    setChildAge(draft.child_age || "3-5");
-    setUsedDonorEgg(draft.used_donor_egg);
-    setUsedDonorSperm(draft.used_donor_sperm);
-    setUsedDonorEmbryo(draft.used_donor_embryo);
-    setUsedSurrogate(draft.used_surrogate);
-    
-    toast.success(`Loaded draft: ${draft.title}`);
-  };
-  
-  // Delete a saved draft
-  const deleteDraft = async (draftId: string) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('saved_drafts')
-        .delete()
-        .eq('id', draftId)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setSavedDrafts(savedDrafts.filter(draft => draft.id !== draftId));
-      
-      toast.success("Draft deleted successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Error deleting draft");
-    }
-  };
-  
-  // Calculate cart total
-  const cartTotal = cartItems.reduce((total, item) => total + item.price, 0);
-  
-  // Calculate cart count
-  const cartCount = cartItems.length;
   
   return (
-    <BookContext.Provider
-      value={{
-        conceptionType,
-        setConceptionType,
-        familyStructure,
-        setFamilyStructure,
-        childName,
-        setChildName,
-        childAge,
-        setChildAge,
-        usedDonorEgg,
-        setUsedDonorEgg,
-        usedDonorSperm,
-        setUsedDonorSperm,
-        usedDonorEmbryo,
-        setUsedDonorEmbryo,
-        usedSurrogate,
-        setUsedSurrogate,
-        isPreviewOpen,
-        openPreview,
-        closePreview,
-        isCheckoutOpen,
-        openCheckout,
-        closeCheckout,
-        cartItems,
-        addToCart,
-        removeFromCart,
-        cartTotal,
-        cartCount,
-        saveDraft,
-        savedDrafts,
-        loadDraft,
-        deleteDraft,
-        loadingSavedDrafts,
-        fetchSavedDrafts,
-      }}
-    >
-      {children}
-    </BookContext.Provider>
+    <React.Fragment>
+      {React.Children.map(children, child => {
+        return React.isValidElement(child)
+          ? React.cloneElement(child as React.ReactElement<any>, contextValue as any)
+          : child;
+      })}
+    </React.Fragment>
   );
 };
 
-export const useBookContext = (): BookContextType => {
-  const context = useContext(BookContext);
-  if (context === undefined) {
-    throw new Error("useBookContext must be used within a BookProvider");
-  }
-  return context;
+// Combined BookProvider component
+export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <BookCustomizationProvider>
+      <CartProvider>
+        <DraftsProvider onLoadDraft={draft => {}}>
+          <BookContextProvider>{children}</BookContextProvider>
+        </DraftsProvider>
+      </CartProvider>
+    </BookCustomizationProvider>
+  );
 };
+
+// Export the useBookContext hook with the combined type
+export const useBookContext = (): BookContextType => {
+  const bookCustomization = useBookCustomization();
+  const cart = useCart();
+  const drafts = useDrafts();
+  
+  // Create a wrapper for saveDraft to match the old API
+  const saveDraft = (title?: string): Promise<void> => {
+    return drafts.saveDraft(title, {
+      conceptionType: bookCustomization.conceptionType,
+      familyStructure: bookCustomization.familyStructure,
+      childName: bookCustomization.childName,
+      childAge: bookCustomization.childAge,
+      usedDonorEgg: bookCustomization.usedDonorEgg,
+      usedDonorSperm: bookCustomization.usedDonorSperm,
+      usedDonorEmbryo: bookCustomization.usedDonorEmbryo,
+      usedSurrogate: bookCustomization.usedSurrogate
+    });
+  };
+  
+  return {
+    // Book customization properties
+    conceptionType: bookCustomization.conceptionType,
+    setConceptionType: bookCustomization.setConceptionType,
+    familyStructure: bookCustomization.familyStructure,
+    setFamilyStructure: bookCustomization.setFamilyStructure,
+    childName: bookCustomization.childName,
+    setChildName: bookCustomization.setChildName,
+    childAge: bookCustomization.childAge,
+    setChildAge: bookCustomization.setChildAge,
+    usedDonorEgg: bookCustomization.usedDonorEgg,
+    setUsedDonorEgg: bookCustomization.setUsedDonorEgg,
+    usedDonorSperm: bookCustomization.usedDonorSperm,
+    setUsedDonorSperm: bookCustomization.setUsedDonorSperm,
+    usedDonorEmbryo: bookCustomization.usedDonorEmbryo,
+    setUsedDonorEmbryo: bookCustomization.setUsedDonorEmbryo,
+    usedSurrogate: bookCustomization.usedSurrogate,
+    setUsedSurrogate: bookCustomization.setUsedSurrogate,
+    isPreviewOpen: bookCustomization.isPreviewOpen,
+    openPreview: bookCustomization.openPreview,
+    closePreview: bookCustomization.closePreview,
+    isCheckoutOpen: bookCustomization.isCheckoutOpen,
+    openCheckout: bookCustomization.openCheckout,
+    closeCheckout: bookCustomization.closeCheckout,
+    
+    // Cart properties
+    cartItems: cart.cartItems,
+    addToCart: cart.addToCart,
+    removeFromCart: cart.removeFromCart,
+    cartTotal: cart.cartTotal,
+    cartCount: cart.cartCount,
+    
+    // Drafts properties
+    savedDrafts: drafts.savedDrafts,
+    loadingSavedDrafts: drafts.loadingSavedDrafts,
+    saveDraft,
+    loadDraft: drafts.loadDraft,
+    deleteDraft: drafts.deleteDraft,
+    fetchSavedDrafts: drafts.fetchSavedDrafts,
+  };
+};
+
+// Export the types for reuse
+export type { ConceptionType, FamilyStructure } from "@/types/bookTypes";
