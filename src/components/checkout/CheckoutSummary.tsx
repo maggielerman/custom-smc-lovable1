@@ -1,20 +1,27 @@
 
 import React from "react";
+import { useBookContext } from "@/context/BookContext";
 
 const CheckoutSummary: React.FC = () => {
+  const { cartItems } = useBookContext();
+  
+  const subtotal = cartItems.reduce((total, item) => total + item.price, 0) || 24.99;
+  const shipping = 5.00;
+  const total = subtotal + shipping;
+
   return (
     <div className="mt-8 border-t pt-6">
       <div className="flex justify-between mb-2">
         <span>Book Price</span>
-        <span>$24.99</span>
+        <span>${subtotal.toFixed(2)}</span>
       </div>
       <div className="flex justify-between mb-2">
         <span>Shipping</span>
-        <span>$5.00</span>
+        <span>${shipping.toFixed(2)}</span>
       </div>
       <div className="flex justify-between font-bold text-lg">
         <span>Total</span>
-        <span>$29.99</span>
+        <span>${total.toFixed(2)}</span>
       </div>
     </div>
   );

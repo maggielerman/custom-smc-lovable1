@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
+import Cart from './cart/Cart';
 
 const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,8 +39,9 @@ const Navbar: React.FC = () => {
             <Link to="/#faq" className="font-medium text-gray-600 hover:text-book-red transition duration-150">
               FAQ
             </Link>
+            <Cart className="mr-2" />
             <Button 
-              className="ml-4 bg-book-red hover:bg-red-400 text-white rounded-full" 
+              className="bg-book-red hover:bg-red-400 text-white rounded-full" 
               size="sm"
               onClick={() => navigate("/create")}
             >
@@ -49,6 +51,7 @@ const Navbar: React.FC = () => {
           
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
+            <Cart className="mr-2" />
             <button
               onClick={toggleMobileMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none"

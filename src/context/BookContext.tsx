@@ -5,6 +5,12 @@ import React, { createContext, useContext, useState } from "react";
 export type ConceptionType = 'iui' | 'ivf' | 'donor-egg' | 'donor-sperm' | 'donor-embryo';
 export type FamilyStructure = 'hetero-couple' | 'single-mom' | 'single-dad' | 'two-moms' | 'two-dads';
 
+interface CartItem {
+  id: string;
+  title: string;
+  price: number;
+}
+
 interface BookContextType {
   // Book details
   conceptionType: ConceptionType;
@@ -35,6 +41,13 @@ interface BookContextType {
   isCheckoutOpen: boolean;
   openCheckout: () => void;
   closeCheckout: () => void;
+  
+  // Cart functionality
+  cartItems: CartItem[];
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (itemId: string) => void;
+  cartTotal: number;
+  cartCount: number;
 }
 
 const BookContext = createContext<BookContextType | undefined>(undefined);
@@ -58,11 +71,33 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Checkout state
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
+  // Cart state
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  
   const openPreview = () => setIsPreviewOpen(true);
   const closePreview = () => setIsPreviewOpen(false);
   
   const openCheckout = () => setIsCheckoutOpen(true);
   const closeCheckout = () => setIsCheckoutOpen(false);
+  
+  // Cart functions
+  const addToCart = (item: CartItem) => {
+    // Check if item already exists in cart
+    const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
+    if (!existingItem) {
+      setCartItems([...cartItems, item]);
+    }
+  };
+  
+  const removeFromCart = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
+  
+  // Calculate cart total
+  const cartTotal = cartItems.reduce((total, item) => total + item.price, 0);
+  
+  // Calculate cart count
+  const cartCount = cartItems.length;
   
   return (
     <BookContext.Provider
@@ -89,6 +124,11 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isCheckoutOpen,
         openCheckout,
         closeCheckout,
+        cartItems,
+        addToCart,
+        removeFromCart,
+        cartTotal,
+        cartCount,
       }}
     >
       {children}

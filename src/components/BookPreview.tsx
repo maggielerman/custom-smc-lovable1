@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
@@ -22,7 +21,8 @@ const BookPreview: React.FC = () => {
     familyStructure, 
     childName,
     childAge,
-    openCheckout
+    openCheckout,
+    addToCart
   } = useBookContext();
   const [currentPage, setCurrentPage] = React.useState(0);
   
@@ -127,6 +127,18 @@ const BookPreview: React.FC = () => {
       openCheckout();
     }, 300);
   };
+  
+  const handleAddToCart = () => {
+    const bookTitle = childName ? `${childName}'s Special Story` : "Your Special Story";
+    
+    addToCart({
+      id: `book-${Date.now()}`,
+      title: bookTitle,
+      price: 24.99
+    });
+    
+    closePreview();
+  };
 
   return (
     <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
@@ -206,10 +218,16 @@ const BookPreview: React.FC = () => {
           </Button>
           <Button 
             className="bg-book-green hover:bg-green-400 text-white ml-4 flex items-center gap-2"
-            onClick={handleOrderClick}
+            onClick={handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4" />
-            Order This Book
+            Add to Cart
+          </Button>
+          <Button 
+            className="bg-book-green hover:bg-green-400 text-white ml-2 flex items-center gap-2"
+            onClick={handleOrderClick}
+          >
+            Buy Now
           </Button>
         </div>
       </DialogContent>
