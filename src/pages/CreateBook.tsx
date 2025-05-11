@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import { BookProvider } from "@/context/BookContext";
+import { BookProvider, useBookContext } from "@/context/BookContext";
 import BookCustomizer from "@/components/BookCustomizer";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,12 +8,28 @@ import BookPreview from "@/components/BookPreview";
 import BookCheckout from "@/components/BookCheckout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import ProductSchema from "@/components/seo/ProductSchema";
+import { Helmet } from "react-helmet";
 
-const CreateBook = () => {
+const CreateBookContent = () => {
   const navigate = useNavigate();
+  const { customOptions } = useBookContext();
+  
+  // Default price in cents (29.99)
+  const bookPrice = 2999;
   
   return (
-    <BookProvider>
+    <>
+      <Helmet>
+        <title>Create Your Custom Book | Little Origins Books</title>
+        <meta name="description" content="Create a personalized children's book explaining donor conception stories with love and care." />
+        <meta property="og:title" content="Create Your Custom Book | Little Origins Books" />
+        <meta property="og:description" content="Create a personalized children's book explaining donor conception stories with love and care." />
+      </Helmet>
+      <ProductSchema 
+        bookTitle={customOptions.childName ? `${customOptions.childName}'s Special Story` : "Custom Children's Book"}
+        price={bookPrice}
+      />
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
@@ -104,6 +120,14 @@ const CreateBook = () => {
         <BookCheckout />
         <Footer />
       </div>
+    </>
+  );
+};
+
+const CreateBook = () => {
+  return (
+    <BookProvider>
+      <CreateBookContent />
     </BookProvider>
   );
 };

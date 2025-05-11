@@ -24,6 +24,21 @@ const CartSummary: React.FC = () => {
         <span>Total</span>
         <span>${total.toFixed(2)}</span>
       </div>
+      
+      {/* Microdata for product */}
+      <div itemScope itemType="https://schema.org/Product" className="hidden">
+        {cartItems.map((item, index) => (
+          <div key={index}>
+            <meta itemProp="name" content={item.title || "Personalized Children's Book"} />
+            <meta itemProp="description" content="A customized children's book explaining donor conception" />
+            <div itemProp="offers" itemScope itemType="https://schema.org/Offer">
+              <meta itemProp="price" content={(item.price / 100).toString()} />
+              <meta itemProp="priceCurrency" content="USD" />
+              <meta itemProp="availability" content="https://schema.org/InStock" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
