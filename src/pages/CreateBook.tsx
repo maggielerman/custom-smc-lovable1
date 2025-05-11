@@ -5,6 +5,7 @@ import BookCustomizer from "@/components/BookCustomizer";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BookPreview from "@/components/BookPreview";
+import BookCheckout from "@/components/BookCheckout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -100,6 +101,7 @@ const CreateBook = () => {
           </div>
         </main>
         <BookPreview />
+        <BookCheckout />
         <Footer />
       </div>
     </BookProvider>

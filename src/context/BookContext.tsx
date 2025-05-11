@@ -30,6 +30,11 @@ interface BookContextType {
   isPreviewOpen: boolean;
   openPreview: () => void;
   closePreview: () => void;
+  
+  // Payment state
+  isCheckoutOpen: boolean;
+  openCheckout: () => void;
+  closeCheckout: () => void;
 }
 
 const BookContext = createContext<BookContextType | undefined>(undefined);
@@ -50,8 +55,14 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
+  // Checkout state
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  
   const openPreview = () => setIsPreviewOpen(true);
   const closePreview = () => setIsPreviewOpen(false);
+  
+  const openCheckout = () => setIsCheckoutOpen(true);
+  const closeCheckout = () => setIsCheckoutOpen(false);
   
   return (
     <BookContext.Provider
@@ -75,6 +86,9 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPreviewOpen,
         openPreview,
         closePreview,
+        isCheckoutOpen,
+        openCheckout,
+        closeCheckout,
       }}
     >
       {children}

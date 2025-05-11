@@ -7,6 +7,7 @@ import SamplePages from "@/components/SamplePages";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import BookPreview from "@/components/BookPreview";
+import BookCheckout from "@/components/BookCheckout";
 import { BookProvider } from "@/context/BookContext";
 
 const Index = () => {
@@ -21,6 +22,7 @@ const Index = () => {
           <SamplePages />
           <FAQ />
           <BookPreview />
+          <BookCheckout />
         </main>
         <Footer />
       </div>

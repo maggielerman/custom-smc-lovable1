@@ -3,7 +3,7 @@ import React from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Define a proper interface for our page objects
@@ -21,7 +21,8 @@ const BookPreview: React.FC = () => {
     conceptionType, 
     familyStructure, 
     childName,
-    childAge 
+    childAge,
+    openCheckout
   } = useBookContext();
   const [currentPage, setCurrentPage] = React.useState(0);
   
@@ -120,6 +121,13 @@ const BookPreview: React.FC = () => {
     setCurrentPage((prev) => (prev - 1 + pages.length) % pages.length);
   };
 
+  const handleOrderClick = () => {
+    closePreview();
+    setTimeout(() => {
+      openCheckout();
+    }, 300);
+  };
+
   return (
     <Dialog open={isPreviewOpen} onOpenChange={(open) => !open && closePreview()}>
       <DialogContent className="sm:max-w-3xl">
@@ -196,7 +204,11 @@ const BookPreview: React.FC = () => {
           <Button className="bg-book-red hover:bg-red-400 text-white">
             Customize More
           </Button>
-          <Button className="bg-book-green hover:bg-green-400 text-white ml-4">
+          <Button 
+            className="bg-book-green hover:bg-green-400 text-white ml-4 flex items-center gap-2"
+            onClick={handleOrderClick}
+          >
+            <ShoppingCart className="h-4 w-4" />
             Order This Book
           </Button>
         </div>
