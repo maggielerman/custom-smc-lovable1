@@ -8,6 +8,7 @@ import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { CartItem } from "@/types/bookTypes";
+import { Json } from "@/integrations/supabase/types";
 
 interface SavedCart {
   id: string;
@@ -45,7 +46,8 @@ export default function SavedCartsSection() {
       // Type conversion - ensure items are properly typed as CartItem[]
       const typedCarts: SavedCart[] = data?.map(cart => ({
         ...cart,
-        items: Array.isArray(cart.items) ? cart.items as CartItem[] : []
+        // First cast to unknown, then to CartItem[] to avoid direct type assertions
+        items: Array.isArray(cart.items) ? (cart.items as unknown) as CartItem[] : []
       })) || [];
       
       setSavedCarts(typedCarts);

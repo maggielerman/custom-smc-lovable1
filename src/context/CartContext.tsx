@@ -47,8 +47,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Load the most recent cart and ensure items are properly typed
         const cartData = data[0];
         if (cartData.items && Array.isArray(cartData.items)) {
-          // Type assertion after verifying it's an array
-          const items = cartData.items as CartItem[];
+          // Double-cast to safely convert from Json to CartItem[]
+          const items = (cartData.items as unknown) as CartItem[];
           if (items.length > 0) {
             setCartItems(items);
           }
