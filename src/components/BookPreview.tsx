@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
@@ -123,6 +124,17 @@ const BookPreview: React.FC = () => {
 
   const handleOrderClick = () => {
     closePreview();
+    
+    // Add the item to cart first
+    const bookTitle = childName ? `${childName}'s Special Story` : "Your Special Story";
+    
+    addToCart({
+      id: `book-${Date.now()}`,
+      title: bookTitle,
+      price: 24.99
+    });
+    
+    // Then open checkout
     setTimeout(() => {
       openCheckout();
     }, 300);
@@ -213,7 +225,9 @@ const BookPreview: React.FC = () => {
         </div>
         
         <div className="flex justify-center mt-6">
-          <Button className="bg-book-red hover:bg-red-400 text-white">
+          <Button 
+            className="bg-book-red hover:bg-red-400 text-white"
+            onClick={closePreview}>
             Customize More
           </Button>
           <Button 

@@ -5,7 +5,7 @@ import { useBookContext } from "@/context/BookContext";
 const CheckoutSummary: React.FC = () => {
   const { cartItems } = useBookContext();
   
-  const subtotal = cartItems.reduce((total, item) => total + item.price, 0) || 24.99;
+  const subtotal = cartItems.reduce((total, item) => total + item.price, 0);
   const shipping = 5.00;
   const total = subtotal + shipping;
 

@@ -3,7 +3,9 @@ import React from "react";
 import { useBookContext } from "@/context/BookContext";
 
 const CartSummary: React.FC = () => {
-  const { cartTotal } = useBookContext();
+  const { cartItems } = useBookContext();
+  
+  const cartTotal = cartItems.reduce((total, item) => total + item.price, 0);
   const shippingCost = 5.00;
   const total = cartTotal + shippingCost;
 
