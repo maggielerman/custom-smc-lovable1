@@ -1,3 +1,4 @@
+
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -9,6 +10,15 @@ const NotFound = () => {
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
+    
+    // Handle API calls for Stripe checkout
+    if (location.pathname.startsWith('/api/create-checkout') && window.history.state?.usr?.apiRequest) {
+      const mockResponse = {
+        url: `https://checkout.stripe.com/pay/cs_test_mockSession?success_url=${encodeURIComponent(window.location.origin + "/order-confirmation")}&cancel_url=${encodeURIComponent(window.location.origin + "/create")}`,
+        id: 'cs_test_mockSessionId',
+      };
+      window.history.state.usr.resolve(mockResponse);
+    }
   }, [location.pathname]);
 
   return (

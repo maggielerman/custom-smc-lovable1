@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CheckoutSummary from "./CheckoutSummary";
+import { toast } from "sonner";
 
 const BookCheckout: React.FC = () => {
   const { isCheckoutOpen, closeCheckout, childName, cartItems } = useBookContext();
@@ -14,27 +15,26 @@ const BookCheckout: React.FC = () => {
     setLoading(true);
     try {
       // Create a Stripe Checkout Session
-      const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Bearer pk_test_51RNY1lFpmfNltxVgEAw8VQ9RaSsfW6zbfBL6qPOXAqY0FmnxvlXOXKHBzypgo3DFoZ6zKPzjc6rTWKabx4Onbo1x00EixeAYJL`
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          'mode': 'payment',
-          'success_url': `${window.location.origin}/order-confirmation`,
-          'cancel_url': `${window.location.origin}/create`,
-          'line_items[0][price_data][currency]': 'usd',
-          'line_items[0][price_data][product_data][name]': childName ? `${childName}'s Special Story` : 'Your Special Story',
-          'line_items[0][price_data][unit_amount]': '2999',
-          'line_items[0][quantity]': '1',
-          'shipping_options[0][shipping_rate_data][type]': 'fixed_amount',
-          'shipping_options[0][shipping_rate_data][fixed_amount][amount]': '500',
-          'shipping_options[0][shipping_rate_data][fixed_amount][currency]': 'usd',
-          'shipping_options[0][shipping_rate_data][display_name]': 'Standard Shipping'
-        })
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            name: item.title,
+            amount: item.price,
+            quantity: 1
+          })),
+          success_url: `${window.location.origin}/order-confirmation`,
+          cancel_url: `${window.location.origin}/create`,
+        }),
       });
 
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
       const session = await response.json();
       
       // Redirect to Stripe Checkout
@@ -63,7 +63,7 @@ const BookCheckout: React.FC = () => {
             <h2 className="text-xl font-bold">
               {childName ? `${childName}'s Special Story` : "Your Special Story"}
             </h2>
-            <div className="text-xl font-bold text-book-red">$29.99</div>
+            <div className="text-xl font-bold text-book-red">${(29.99).toFixed(2)}</div>
           </div>
           
           <CheckoutSummary />
@@ -85,8 +85,5 @@ const BookCheckout: React.FC = () => {
     </Dialog>
   );
 };
-
-import { useState } from "react";
-import { toast } from "sonner";
 
 export default BookCheckout;
