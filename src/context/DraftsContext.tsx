@@ -58,7 +58,7 @@ export const DraftsProvider: React.FC<{
     try {
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
-      const { data, error } = await supabase
+      await supabase
         .from('saved_drafts')
         .insert({
           user_id: user.id,
@@ -71,23 +71,19 @@ export const DraftsProvider: React.FC<{
           used_donor_sperm: bookData.usedDonorSperm,
           used_donor_embryo: bookData.usedDonorEmbryo,
           used_surrogate: bookData.usedSurrogate
-        })
-        .select()
-        .single();
+        });
         
-      if (error) throw error;
-      
       toast.success("Draft saved successfully");
       
       // Update local state
-      fetchSavedDrafts();
+      await fetchSavedDrafts();
     } catch (error: any) {
       toast.error(error.message || "Error saving draft");
     }
   };
   
   // Fetch user's saved drafts
-  const fetchSavedDrafts = async () => {
+  const fetchSavedDrafts = async (): Promise<void> => {
     if (!user) return;
     
     try {
@@ -115,7 +111,7 @@ export const DraftsProvider: React.FC<{
   };
   
   // Delete a saved draft
-  const deleteDraft = async (draftId: string) => {
+  const deleteDraft = async (draftId: string): Promise<void> => {
     if (!user) return;
     
     try {

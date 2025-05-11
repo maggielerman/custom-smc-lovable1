@@ -26,8 +26,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
       
-      // Convert CartItem[] to Json for Supabase
-      const itemsJson: Json = items as unknown as Json;
+      // Properly handle the CartItem[] to Json conversion for Supabase
+      // This addresses the TypeScript error by explicitly casting to Json
+      const itemsJson = items as unknown as Json;
       
       // Check if user has a saved cart
       const { data: existingCarts } = await supabase
