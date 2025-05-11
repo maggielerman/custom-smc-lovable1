@@ -10,8 +10,12 @@ import BookPreview from "@/components/BookPreview";
 import BookCheckout from "@/components/BookCheckout";
 import { BookProvider } from "@/context/BookContext";
 import { Helmet } from "react-helmet";
+import ProductSchema from "@/components/seo/ProductSchema";
 
 const HomePage = () => {
+  // Default price in cents (29.99)
+  const bookPrice = 2999;
+  
   return (
     <>
       <Helmet>
@@ -33,6 +37,10 @@ const HomePage = () => {
         }
         `}
       </script>
+      <ProductSchema 
+        bookTitle="Custom Children's Book"
+        price={bookPrice}
+      />
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">

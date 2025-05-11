@@ -13,7 +13,7 @@ import { Helmet } from "react-helmet";
 
 const CreateBookContent = () => {
   const navigate = useNavigate();
-  const { customOptions } = useBookContext();
+  const { childName } = useBookContext();
   
   // Default price in cents (29.99)
   const bookPrice = 2999;
@@ -27,7 +27,7 @@ const CreateBookContent = () => {
         <meta property="og:description" content="Create a personalized children's book explaining donor conception stories with love and care." />
       </Helmet>
       <ProductSchema 
-        bookTitle={customOptions.childName ? `${customOptions.childName}'s Special Story` : "Custom Children's Book"}
+        bookTitle={childName ? `${childName}'s Special Story` : "Custom Children's Book"}
         price={bookPrice}
       />
       <div className="min-h-screen flex flex-col">
