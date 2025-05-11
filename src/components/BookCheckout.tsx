@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
@@ -8,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 // Using the provided Stripe publishable key
 const stripePromise = loadStripe("pk_test_51RNY1lFpmfNltxVgEAw8VQ9RaSsfW6zbfBL6qPOXAqY0FmnxvlXOXKHBzypgo3DFoZ6zKPzjc6rTWKabx4Onbo1x00EixeAYJL");
@@ -41,6 +41,7 @@ interface CheckoutFormProps {
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ bookName }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'details' | 'payment' | 'shipping'>('details');
   
@@ -56,41 +57,66 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ bookName }) => {
     event.preventDefault();
     
     if (!stripe || !elements) {
+      toast.error("Stripe has not been properly initialized");
       return;
     }
     
     setLoading(true);
     
-    // In a real implementation, you would:
-    // 1. Send order details to your backend
-    // 2. Create a payment intent with Stripe
-    // 3. Confirm the payment with the card element
-    
     try {
-      // Simulating payment processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const cardElement = elements.getElement(CardElement);
       
-      // This is where you'd normally process the actual payment
-      // const { paymentMethod, error } = await stripe.createPaymentMethod({
-      //   type: 'card',
-      //   card: elements.getElement(CardElement)!,
-      //   billing_details: { name, email }
-      // });
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
       
+      // Create a payment method using the card element
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+        billing_details: {
+          name,
+          email,
+          address: {
+            line1: address,
+            city,
+            postal_code: zip,
+            country,
+          }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message || "Payment failed");
+      }
+      
+      // In a real implementation, you would send the payment method ID to your server
+      // to create a payment intent and confirm the payment
+      
+      // Simulate successful payment for now
+      console.log("Payment method created successfully:", paymentMethod.id);
       toast.success("Order placed successfully! Check your email for confirmation.");
+      
       setTimeout(() => {
-        window.location.href = '/order-confirmation';
-      }, 1000);
+        navigate('/order-confirmation');
+      }, 1500);
+      
     } catch (error) {
-      toast.error("Payment failed. Please try again.");
+      console.error("Payment error:", error);
+      toast.error(error instanceof Error ? error.message : "Payment failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
   
   const nextStep = () => {
-    if (step === 'details') setStep('payment');
-    else if (step === 'payment') setStep('shipping');
+    if (step === 'details') {
+      if (!name || !email) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+      setStep('payment');
+    } else if (step === 'payment') setStep('shipping');
   };
   
   const prevStep = () => {
@@ -250,7 +276,119 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ bookName }) => {
       </div>
       
       <form className="space-y-6">
-        {renderStepContent()}
+        {step === 'details' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Your Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+                required
+              />
+            </div>
+            <Button onClick={nextStep} className="w-full mt-4 bg-book-red hover:bg-red-600">Continue to Payment</Button>
+          </div>
+        )}
+        
+        {step === 'payment' && (
+          <div className="space-y-4">
+            <div className="border rounded-md p-4 bg-gray-50">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Card Information</label>
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#424770',
+                      '::placeholder': {
+                        color: '#aab7c4',
+                      },
+                    },
+                    invalid: {
+                      color: '#9e2146',
+                    },
+                  },
+                }}
+              />
+            </div>
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={prevStep}>Back</Button>
+              <Button onClick={nextStep} className="bg-book-red hover:bg-red-600">Continue to Shipping</Button>
+            </div>
+          </div>
+        )}
+        
+        {step === 'shipping' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">City</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ZIP Code</label>
+                <input
+                  type="text"
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Country</label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-book-red focus:outline-none"
+              >
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Australia">Australia</option>
+              </select>
+            </div>
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={prevStep}>Back</Button>
+              <Button 
+                onClick={handleSubmit} 
+                className="bg-book-green hover:bg-green-600 text-white"
+                disabled={!stripe || loading}
+              >
+                {loading ? "Processing..." : "Complete Order"}
+              </Button>
+            </div>
+          </div>
+        )}
       </form>
       
       <div className="mt-8 border-t pt-6">
