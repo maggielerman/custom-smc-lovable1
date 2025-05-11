@@ -9,8 +9,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
 
-// You would replace this with your publishable key from Stripe Dashboard
-const stripePromise = loadStripe("pk_test_TYooMQauvdEDq54NiTphI7jx");
+// Using the provided Stripe publishable key
+const stripePromise = loadStripe("pk_test_51RNY1lFpmfNltxVgEAw8VQ9RaSsfW6zbfBL6qPOXAqY0FmnxvlXOXKHBzypgo3DFoZ6zKPzjc6rTWKabx4Onbo1x00EixeAYJL");
 
 const BookCheckout: React.FC = () => {
   const { isCheckoutOpen, closeCheckout, childName } = useBookContext();
