@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "./AuthContext";
+import { Json } from "@/integrations/supabase/types";
 
 // Define types for our book customization
 export type ConceptionType = 'iui' | 'ivf' | 'donor-egg' | 'donor-sperm' | 'donor-embryo';
@@ -139,6 +140,9 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
       
+      // Convert CartItem[] to Json for Supabase
+      const itemsJson: Json = items as unknown as Json;
+      
       // Check if user has a saved cart
       const { data: existingCarts } = await supabase
         .from('saved_carts')
@@ -150,7 +154,7 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase
           .from('saved_carts')
           .update({
-            items: items,
+            items: itemsJson,
             total_amount: totalAmount,
             updated_at: new Date().toISOString()
           })
@@ -161,7 +165,7 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('saved_carts')
           .insert({
             user_id: user.id,
-            items: items,
+            items: itemsJson,
             total_amount: totalAmount
           });
       }
@@ -171,7 +175,7 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   // Save book draft to Supabase
-  const saveDraft = async (title?: string) => {
+  const saveDraft = async (title?: string): Promise<void> => {
     if (!user) {
       toast.error("Please sign in to save drafts");
       return;
@@ -203,8 +207,6 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Update local state
       fetchSavedDrafts();
-      
-      return data;
     } catch (error: any) {
       toast.error(error.message || "Error saving draft");
     }
