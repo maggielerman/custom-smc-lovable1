@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useBookContext } from "@/context/BookContext";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Users, Baby, Egg, Dna } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Users, Baby, Egg, Dna, ShoppingCart } from "lucide-react";
 
 // Define step types
 type StepType = "family-structure" | "conception-type" | "donor-options" | "surrogacy" | "child-details" | "review";
@@ -23,7 +24,9 @@ const BookCustomizer: React.FC = () => {
     setChildName,
     childAge,
     setChildAge,
-    openPreview
+    openPreview,
+    addToCart,
+    openCheckout
   } = useBookContext();
   
   // Add state for the current step
@@ -43,12 +46,36 @@ const BookCustomizer: React.FC = () => {
     openPreview();
   };
 
-  const handleCreateBookClick = () => {
+  const handleAddToCartClick = () => {
     if (!childName.trim()) {
       toast.warning("Please enter your child's name to create your book");
       return;
     }
+    
+    addToCart({
+      id: new Date().toISOString(),
+      title: childName ? `${childName}'s Special Story` : "Your Special Story",
+      price: 2999 // $29.99 in cents
+    });
+    
     toast.success("Your book has been added to cart!");
+  };
+  
+  const handleBuyNowClick = () => {
+    if (!childName.trim()) {
+      toast.warning("Please enter your child's name to create your book");
+      return;
+    }
+    
+    // Add to cart first
+    addToCart({
+      id: new Date().toISOString(),
+      title: childName ? `${childName}'s Special Story` : "Your Special Story",
+      price: 2999 // $29.99 in cents
+    });
+    
+    // Then open checkout
+    openCheckout();
   };
   
   // Function to navigate to next step
@@ -648,17 +675,25 @@ const BookCustomizer: React.FC = () => {
                     </div>
                     
                     <div className="bg-calm-yellow/20 p-4 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <p className="text-gray-700 font-medium flex-1">
-                          Price: <span className="font-bold">$34.99</span>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-gray-700 font-medium sm:flex-1">
+                          Price: <span className="font-bold">$29.99</span>
                           <span className="text-sm ml-2 text-gray-500">Free shipping on all orders</span>
                         </p>
-                        <Button 
-                          className="bg-book-green hover:bg-green-600 text-white"
-                          onClick={handleCreateBookClick}
-                        >
-                          Add to Cart
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button 
+                            className="flex-1 sm:flex-none bg-book-green hover:bg-green-600 text-white"
+                            onClick={handleAddToCartClick}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" /> Add to Cart
+                          </Button>
+                          <Button 
+                            className="flex-1 sm:flex-none bg-book-red hover:bg-red-600 text-white"
+                            onClick={handleBuyNowClick}
+                          >
+                            Buy Now
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -679,9 +714,9 @@ const BookCustomizer: React.FC = () => {
               {isLastStep ? (
                 <Button 
                   className="bg-book-red hover:bg-red-600 text-white"
-                  onClick={handleCreateBookClick}
+                  onClick={handleAddToCartClick}
                 >
-                  Create Your Book
+                  Add to Cart
                 </Button>
               ) : (
                 <Button 
