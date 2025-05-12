@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +12,7 @@ import { useClerk } from "@clerk/clerk-react";
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp, loading, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp, loading, isLoaded, signInWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [isProcessing, setIsProcessing] = useState(false);
   const { handleRedirectCallback } = useClerk();
@@ -37,13 +38,13 @@ const Auth = () => {
 
   // If user is already logged in, redirect to home
   useEffect(() => {
-    console.log("Auth page: User state changed", { user, loading });
-    if (user && !loading) {
+    if (isLoaded && user) {
+      console.log("Auth page: User authenticated, redirecting", { user });
       const from = location.state?.from?.pathname || "/";
       console.log(`Auth page: Redirecting to ${from}`);
       navigate(from, { replace: true });
     }
-  }, [user, loading, navigate, location]);
+  }, [user, isLoaded, navigate, location]);
 
   // Set active tab based on query param
   useEffect(() => {
@@ -88,6 +89,8 @@ const Auth = () => {
       };
       
       await signUp(email, password, metadata);
+      
+      // Auto switch to login tab if signUp requires confirmation
       setActiveTab("login");
     } catch (error) {
       console.error("Registration error:", error);
@@ -105,6 +108,8 @@ const Auth = () => {
       </div>
     );
   }
+
+  console.log("Auth page rendered, user:", user ? "Logged in" : "Not logged in");
 
   return (
     <>
