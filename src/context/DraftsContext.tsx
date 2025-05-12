@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
@@ -82,9 +81,12 @@ export const DraftsProvider: React.FC<{
     }
   };
   
-  // Fetch user's saved drafts
-  const fetchSavedDrafts = async (): Promise<void> => {
-    if (!user) return;
+  // Fetch user's saved drafts - converted to useCallback to prevent dependency issues
+  const fetchSavedDrafts = useCallback(async (): Promise<void> => {
+    if (!user) {
+      setSavedDrafts([]);
+      return;
+    }
     
     try {
       setLoadingSavedDrafts(true);
@@ -96,13 +98,20 @@ export const DraftsProvider: React.FC<{
         
       if (error) throw error;
       
+      console.log('Fetched drafts:', data);
       setSavedDrafts(data || []);
     } catch (error: any) {
       console.error('Error fetching drafts:', error);
+      toast.error("Failed to load your saved drafts");
     } finally {
       setLoadingSavedDrafts(false);
     }
-  };
+  }, [user]);
+  
+  // Add useEffect to fetch drafts when user changes
+  useEffect(() => {
+    fetchSavedDrafts();
+  }, [fetchSavedDrafts]);
   
   // Load a saved draft
   const loadDraft = (draft: SavedDraft) => {
