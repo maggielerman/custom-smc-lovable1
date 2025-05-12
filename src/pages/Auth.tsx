@@ -24,7 +24,7 @@ const Auth = () => {
       if (searchParams.has('oauth_callback')) {
         try {
           setIsProcessing(true);
-          await handleRedirectCallback();
+          await handleRedirectCallback(window.location.href);
         } catch (err) {
           console.error("OAuth callback error:", err);
         } finally {
