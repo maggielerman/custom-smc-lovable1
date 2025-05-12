@@ -7,13 +7,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
 import { Loader2 } from "lucide-react";
+import { useClerk } from "@clerk/clerk-react";
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp, loading } = useAuth();
+  const { user, signIn, signUp, loading, signInWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [isProcessing, setIsProcessing] = useState(false);
+  const { handleRedirectCallback } = useClerk();
+
+  // Handle OAuth callback
+  useEffect(() => {
+    async function processOAuthCallback() {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.has('oauth_callback')) {
+        try {
+          setIsProcessing(true);
+          await handleRedirectCallback();
+        } catch (err) {
+          console.error("OAuth callback error:", err);
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    }
+    
+    processOAuthCallback();
+  }, [handleRedirectCallback]);
 
   // If user is already logged in, redirect to home
   useEffect(() => {
@@ -43,6 +64,17 @@ const Auth = () => {
       // No need to navigate, useEffect will handle it
     } catch (error: any) {
       console.error("Login error:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsProcessing(true);
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Google login error:", error);
     } finally {
       setIsProcessing(false);
     }
@@ -89,11 +121,11 @@ const Auth = () => {
           </TabsList>
           
           <TabsContent value="login">
-            <LoginForm onSubmit={handleLogin} />
+            <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleLogin} />
           </TabsContent>
           
           <TabsContent value="register">
-            <RegisterForm onSubmit={handleRegister} />
+            <RegisterForm onSubmit={handleRegister} onGoogleSignIn={handleGoogleLogin} />
           </TabsContent>
         </Tabs>
       </div>

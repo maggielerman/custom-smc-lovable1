@@ -16,6 +16,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +78,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const handleSignInWithGoogle = async () => {
+    try {
+      console.log("AuthContext: Attempting to sign in with Google");
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/",
+        redirectUrlComplete: "/",
+      });
+    } catch (error: any) {
+      console.error("AuthContext: Google sign in error", error);
+      toast.error(error.errors?.[0]?.message || "Failed to sign in with Google");
+      throw error;
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       console.log("AuthContext: Attempting to sign out");
@@ -97,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,
+    signInWithGoogle: handleSignInWithGoogle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
