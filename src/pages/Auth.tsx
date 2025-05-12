@@ -6,17 +6,21 @@ import { Helmet } from "react-helmet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signIn, signUp, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // If user is already logged in, redirect to home
   useEffect(() => {
+    console.log("Auth page: User state changed", { user, loading });
     if (user && !loading) {
       const from = location.state?.from?.pathname || "/";
+      console.log(`Auth page: Redirecting to ${from}`);
       navigate(from, { replace: true });
     }
   }, [user, loading, navigate, location]);
@@ -31,25 +35,41 @@ const Auth = () => {
   }, [location]);
 
   const handleLogin = async (email: string, password: string) => {
-    await signIn(email, password);
-    // No need to navigate, useEffect will handle it
+    try {
+      setIsProcessing(true);
+      console.log("Auth page: Calling signIn");
+      await signIn(email, password);
+      console.log("Auth page: signIn completed");
+      // No need to navigate, useEffect will handle it
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setIsProcessing(false);
+    }
   };
 
   const handleRegister = async (email: string, password: string, firstName: string, lastName: string) => {
-    const metadata = {
-      first_name: firstName || undefined,
-      last_name: lastName || undefined
-    };
-    
-    await signUp(email, password, metadata);
-    setActiveTab("login");
+    try {
+      setIsProcessing(true);
+      const metadata = {
+        first_name: firstName || undefined,
+        last_name: lastName || undefined
+      };
+      
+      await signUp(email, password, metadata);
+      setActiveTab("login");
+    } catch (error) {
+      console.error("Registration error:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // If still loading auth state, show loading
-  if (loading) {
+  if (loading || isProcessing) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-book-red"></div>
+      <div className="flex flex-col justify-center items-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-book-red mb-4" />
+        <p className="text-gray-600">{isProcessing ? "Processing your request..." : "Checking authentication..."}</p>
       </div>
     );
   }

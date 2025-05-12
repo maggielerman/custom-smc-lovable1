@@ -25,8 +25,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
 
     try {
       setIsSubmitting(true);
+      console.log("Login form: Attempting to sign in");
       await onSubmit(email, password);
-    } catch (error) {
+      console.log("Login form: Sign in attempt completed");
+    } catch (error: any) {
+      console.error("Login form error:", error);
       // Error is handled in the parent component
     } finally {
       setIsSubmitting(false);
@@ -51,6 +54,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isSubmitting}
               required
             />
           </div>
@@ -61,6 +65,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isSubmitting}
               required
             />
           </div>
@@ -81,7 +86,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
             className="w-full bg-book-red hover:bg-red-700"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Signing in..." : "Sign In"}
+            {isSubmitting ? (
+              <>
+                <span className="animate-spin mr-2 inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Signing in...
+              </>
+            ) : "Sign In"}
           </Button>
           
           <div className="text-center mt-2">
