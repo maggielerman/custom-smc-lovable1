@@ -2,9 +2,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet";
-import { Loader2 } from "lucide-react";
+import { Loader2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 interface BlogPost {
   id: string;
@@ -19,6 +20,8 @@ const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -34,6 +37,16 @@ const Blog = () => {
         if (error) throw error;
         
         setPosts(data || []);
+
+        // Check if user is admin
+        if (user) {
+          const { data: isAdminData, error: adminError } = await supabase
+            .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+          
+          if (!adminError) {
+            setIsAdmin(!!isAdminData);
+          }
+        }
       } catch (err: any) {
         console.error("Error fetching blog posts:", err);
         setError(err.message || "Failed to load blog posts");
@@ -43,7 +56,7 @@ const Blog = () => {
     };
 
     fetchPosts();
-  }, []);
+  }, [user]);
 
   return (
     <>
@@ -53,10 +66,22 @@ const Blog = () => {
       
       <div className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Our Blog</h1>
-          <p className="text-lg text-gray-600 mb-12">
-            Explore articles about fertility, family journeys, and talking to children about their origins
-          </p>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Our Blog</h1>
+              <p className="text-lg text-gray-600">
+                Explore articles about fertility, family journeys, and talking to children about their origins
+              </p>
+            </div>
+            
+            {isAdmin && (
+              <Button asChild>
+                <Link to="/blog-admin">
+                  <Edit className="h-4 w-4 mr-2" /> Manage Blog
+                </Link>
+              </Button>
+            )}
+          </div>
           
           {loading ? (
             <div className="flex justify-center items-center py-20">

@@ -14,6 +14,8 @@ import OrderConfirmation from "./pages/OrderConfirmation";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import BlogAdmin from "./pages/BlogAdmin";
 import NotFound from "./pages/NotFound";
 
 // Account Pages
@@ -42,6 +44,8 @@ const App = () => (
                   <Route path="/order-confirmation" element={<OrderConfirmation />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
+                  <Route path="/blog-admin" element={<BlogAdmin />} />
                   
                   {/* Account Routes */}
                   <Route path="/profile" element={<AccountLayout />}>
