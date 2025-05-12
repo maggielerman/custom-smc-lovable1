@@ -65,13 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // If sign up is complete, try to sign in immediately
         try {
-          await clerk.signIn.create({
+          await signIn.create({
             identifier: email,
             password,
           });
           
-          if (clerk.signIn.status === 'complete') {
-            await clerk.setActive({ session: clerk.signIn.createdSessionId });
+          if (signIn.status === 'complete') {
+            await clerk.setActive({ session: signIn.createdSessionId });
             console.log("Auto sign-in successful after registration");
           }
         } catch (signInError) {
