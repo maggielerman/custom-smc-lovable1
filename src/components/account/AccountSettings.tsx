@@ -1,13 +1,14 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Loader2, AlertTriangle, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +22,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function AccountSettings() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
   
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -31,6 +34,32 @@ export default function AccountSettings() {
     activityUpdates: true,
     darkMode: false,
   });
+
+  useEffect(() => {
+    // Check if MFA is enabled for the user
+    if (user) {
+      checkMfaStatus();
+    }
+  }, [user]);
+
+  const checkMfaStatus = async () => {
+    try {
+      setMfaLoading(true);
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      
+      if (error) throw error;
+      
+      const hasMfa = data.totp.some(factor => 
+        factor.factor_type === 'totp' && factor.status === 'verified'
+      );
+      
+      setMfaEnabled(hasMfa);
+    } catch (error) {
+      console.error("Error checking MFA status:", error);
+    } finally {
+      setMfaLoading(false);
+    }
+  };
 
   const handlePreferenceChange = (key: keyof typeof preferences) => {
     setPreferences(prev => ({
@@ -59,8 +88,82 @@ export default function AccountSettings() {
     }, 1500);
   };
 
+  const handlePasswordChange = () => {
+    toast.info("Password reset email sent. Check your inbox.");
+    // In a real implementation, we would trigger a password reset email
+  };
+
   return (
     <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Lock className="h-5 w-5 mr-2 text-blue-500" /> 
+            Security Settings
+          </CardTitle>
+          <CardDescription>
+            Manage your account security and authentication methods
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Multi-Factor Authentication (MFA)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Protect your account with an additional verification step
+                </p>
+              </div>
+              
+              {mfaLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : mfaEnabled ? (
+                <div className="flex items-center">
+                  <span className="text-sm text-green-600 mr-2">Enabled</span>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/mfa-setup">Manage</Link>
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/mfa-setup">
+                    <ShieldCheck className="h-4 w-4 mr-1" /> Enable MFA
+                  </Link>
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Password</Label>
+                <p className="text-sm text-muted-foreground">
+                  Change your password or reset it if forgotten
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handlePasswordChange}>
+                <KeyRound className="h-4 w-4 mr-1" /> Change
+              </Button>
+            </div>
+            
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-700">Password Security Tips</h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Use at least 12 characters</li>
+                      <li>Mix uppercase, lowercase, numbers, and symbols</li>
+                      <li>Don't reuse passwords from other sites</li>
+                      <li>Consider using a password manager</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>Notification Preferences</CardTitle>

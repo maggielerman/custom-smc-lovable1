@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Helmet } from "react-helmet";
 import { toast } from "sonner";
+import { AlertCircle, Check, X, Shield } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -23,6 +24,16 @@ const Auth = () => {
     lastName: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Password strength check
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+    score: 0
+  });
 
   // If user is already logged in, redirect to home
   useEffect(() => {
@@ -42,9 +53,36 @@ const Auth = () => {
   }, [location]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
+    });
+
+    // Check password strength when password field changes
+    if (name === "password") {
+      checkPasswordStrength(value);
+    }
+  };
+
+  const checkPasswordStrength = (password: string) => {
+    const hasLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    // Calculate score (1 point for each condition met)
+    const score = [hasLength, hasUppercase, hasLowercase, hasNumber, hasSpecial]
+      .filter(Boolean).length;
+    
+    setPasswordStrength({
+      length: hasLength,
+      uppercase: hasUppercase,
+      lowercase: hasLowercase,
+      number: hasNumber,
+      special: hasSpecial,
+      score
     });
   };
 
@@ -79,8 +117,8 @@ const Auth = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
+    if (passwordStrength.score < 3) {
+      toast.error("Please create a stronger password");
       return;
     }
 
@@ -108,6 +146,58 @@ const Auth = () => {
       </div>
     );
   }
+
+  // Helper function to render password strength indicators
+  const renderPasswordStrengthIndicator = () => {
+    return (
+      <div className="mt-2 space-y-2">
+        <p className="text-sm font-medium">Password strength: 
+          <span className={`ml-1 ${
+            passwordStrength.score >= 4 ? "text-green-600" : 
+            passwordStrength.score >= 3 ? "text-yellow-600" :
+            "text-red-600"
+          }`}>
+            {passwordStrength.score >= 4 ? "Strong" : 
+             passwordStrength.score >= 3 ? "Good" : 
+             passwordStrength.score >= 2 ? "Fair" : 
+             "Weak"}
+          </span>
+        </p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center">
+            {passwordStrength.length ? 
+              <Check className="h-4 w-4 text-green-500 mr-1" /> : 
+              <X className="h-4 w-4 text-red-500 mr-1" />}
+            <span>At least 8 characters</span>
+          </div>
+          <div className="flex items-center">
+            {passwordStrength.uppercase ? 
+              <Check className="h-4 w-4 text-green-500 mr-1" /> : 
+              <X className="h-4 w-4 text-red-500 mr-1" />}
+            <span>Uppercase letter (A-Z)</span>
+          </div>
+          <div className="flex items-center">
+            {passwordStrength.lowercase ? 
+              <Check className="h-4 w-4 text-green-500 mr-1" /> : 
+              <X className="h-4 w-4 text-red-500 mr-1" />}
+            <span>Lowercase letter (a-z)</span>
+          </div>
+          <div className="flex items-center">
+            {passwordStrength.number ? 
+              <Check className="h-4 w-4 text-green-500 mr-1" /> : 
+              <X className="h-4 w-4 text-red-500 mr-1" />}
+            <span>Number (0-9)</span>
+          </div>
+          <div className="flex items-center">
+            {passwordStrength.special ? 
+              <Check className="h-4 w-4 text-green-500 mr-1" /> : 
+              <X className="h-4 w-4 text-red-500 mr-1" />}
+            <span>Special character (!@#$...)</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -155,8 +245,18 @@ const Auth = () => {
                       required
                     />
                   </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="text-sm text-book-red p-0 h-auto"
+                      onClick={() => toast.info("Password reset feature coming soon")}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-4">
                   <Button 
                     type="submit" 
                     className="w-full bg-book-red hover:bg-red-700"
@@ -164,6 +264,13 @@ const Auth = () => {
                   >
                     {isSubmitting ? "Signing in..." : "Sign In"}
                   </Button>
+                  
+                  <div className="text-center mt-2">
+                    <div className="flex items-center justify-center text-sm">
+                      <Shield className="h-4 w-4 text-green-600 mr-1" />
+                      <span>Secure authentication</span>
+                    </div>
+                  </div>
                 </CardFooter>
               </form>
             </Card>
@@ -222,7 +329,13 @@ const Auth = () => {
                       value={formData.password}
                       onChange={handleChange}
                       required
+                      className={formData.password && `border-${
+                        passwordStrength.score >= 4 ? "green" :
+                        passwordStrength.score >= 3 ? "yellow" :
+                        passwordStrength.score >= 2 ? "orange" : "red"
+                      }-500`}
                     />
+                    {formData.password && renderPasswordStrengthIndicator()}
                   </div>
                   
                   <div className="space-y-2">
@@ -234,14 +347,38 @@ const Auth = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       required
+                      className={
+                        formData.confirmPassword && formData.password !== formData.confirmPassword
+                          ? "border-red-500"
+                          : ""
+                      }
                     />
+                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                      <p className="text-sm text-red-600 mt-1 flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-1" /> Passwords don't match
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                    <div className="flex">
+                      <div className="ml-1">
+                        <p className="text-sm text-blue-700">
+                          Strong passwords and MFA help protect your account from unauthorized access.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter>
                   <Button 
                     type="submit" 
                     className="w-full bg-book-red hover:bg-red-700"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || 
+                      !formData.email || 
+                      !formData.password || 
+                      passwordStrength.score < 3 ||
+                      formData.password !== formData.confirmPassword}
                   >
                     {isSubmitting ? "Creating account..." : "Create Account"}
                   </Button>
