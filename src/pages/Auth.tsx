@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +23,7 @@ const Auth = () => {
       if (searchParams.has('oauth_callback')) {
         try {
           setIsProcessing(true);
-          await handleRedirectCallback();
+          await handleRedirectCallback({ redirectUrl: window.location.href });
         } catch (err) {
           console.error("OAuth callback error:", err);
         } finally {
