@@ -4,9 +4,7 @@ import {
   useAuth as useClerkAuth, 
   useUser, 
   useSignIn, 
-  useSignUp,
-  SignInResource,
-  SignUpResource
+  useSignUp
 } from "@clerk/clerk-react";
 import { toast } from "sonner";
 
@@ -41,10 +39,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastName: metadata?.last_name || undefined
       });
       
-      // Redirect to verify email if signup requires verification
+      // Check signup status
       if (signUp.status === 'complete') {
         toast.success("Registration successful! You can now sign in.");
-      } else if (signUp.status === 'needs_verification') {
+      } else {
+        // Handle all other statuses
         toast.success("Registration successful! Check your email to confirm your account.");
       }
       
@@ -79,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignOut = async () => {
     try {
       console.log("AuthContext: Attempting to sign out");
+      // Use optional chaining to avoid the TS error
       await window.Clerk?.signOut();
       console.log("AuthContext: Sign out successful");
       toast.info("You have been signed out");
