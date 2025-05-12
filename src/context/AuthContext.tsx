@@ -4,7 +4,8 @@ import {
   useAuth as useClerkAuth, 
   useUser, 
   useSignIn, 
-  useSignUp
+  useSignUp,
+  useClerk
 } from "@clerk/clerk-react";
 import { toast } from "sonner";
 
@@ -24,6 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user, isLoaded: isUserLoaded } = useUser();
   const { signIn, isLoaded: isSignInLoaded } = useSignIn();
   const { signUp, isLoaded: isSignUpLoaded } = useSignUp();
+  const clerk = useClerk();
 
   // Determine if we're still loading auth data
   const loading = !isAuthLoaded || !isUserLoaded || !isSignInLoaded || !isSignUpLoaded;
@@ -78,8 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignOut = async () => {
     try {
       console.log("AuthContext: Attempting to sign out");
-      // Use optional chaining to avoid the TS error
-      await window.Clerk?.signOut();
+      await clerk.signOut();
       console.log("AuthContext: Sign out successful");
       toast.info("You have been signed out");
     } catch (error: any) {
