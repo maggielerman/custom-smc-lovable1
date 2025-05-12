@@ -12,7 +12,9 @@ import { toast } from "sonner";
 interface AuthContextType {
   session: any | null;
   user: any | null;
+  userId: string | null;  // Added userId property
   loading: boolean;
+  isLoaded: boolean;      // Added isLoaded property
   signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -30,6 +32,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Determine if we're still loading auth data
   const loading = !isAuthLoaded || !isUserLoaded || !isSignInLoaded || !isSignUpLoaded;
+  const isLoaded = isAuthLoaded && isUserLoaded && isSignInLoaded && isSignUpLoaded;
+  
+  // Get user ID safely
+  const userId = isSignedIn && user ? user.id : null;
 
   const handleSignUp = async (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => {
     try {
@@ -109,7 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     session: isSignedIn ? { user } : null,
     user: isSignedIn ? user : null,
+    userId: userId,  // Provide userId
     loading,
+    isLoaded,  // Provide isLoaded
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,
