@@ -8,7 +8,7 @@ import { BookPage } from './BookPageContent';
 interface BookPaginationProps {
   pages: BookPage[];
   currentPage: number;
-  setCurrentPage: (page: number) => void;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const BookPagination: React.FC<BookPaginationProps> = ({ pages, currentPage, setCurrentPage }) => {
