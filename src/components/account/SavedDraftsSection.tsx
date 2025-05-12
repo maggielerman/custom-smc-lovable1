@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDrafts } from "@/context/DraftsContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Loader2, Edit, Trash2, PlusCircle, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +25,16 @@ export default function SavedDraftsSection() {
 
   useEffect(() => {
     if (user) {
+      console.log("SavedDraftsSection - Fetching drafts for user:", user.id);
       fetchSavedDrafts();
+    } else {
+      console.log("SavedDraftsSection - No user found");
     }
   }, [user, fetchSavedDrafts]);
 
   const handleLoadDraft = (draftIndex: number) => {
     const draft = savedDrafts[draftIndex];
+    console.log("Loading draft:", draft);
     loadDraft(draft);
     navigate("/create");
   };
@@ -39,28 +43,42 @@ export default function SavedDraftsSection() {
     await deleteDraft(draftId);
   };
 
-  if (loadingSavedDrafts) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-book-red" />
-      </div>
-    );
-  }
+  const handleRefreshDrafts = () => {
+    fetchSavedDrafts();
+  };
+
+  console.log("SavedDraftsSection rendering with:", { loadingSavedDrafts, draftsCount: savedDrafts.length });
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold">Your Saved Drafts</h3>
-        <Button 
-          onClick={() => navigate("/create")} 
-          variant="outline" 
-          className="border-book-red text-book-red hover:bg-book-red/10"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> Create New Book
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleRefreshDrafts}
+            variant="outline"
+            size="sm"
+            className="text-gray-600"
+            disabled={loadingSavedDrafts}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loadingSavedDrafts ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button 
+            onClick={() => navigate("/create")} 
+            variant="outline" 
+            className="border-book-red text-book-red hover:bg-book-red/10"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Create New Book
+          </Button>
+        </div>
       </div>
 
-      {savedDrafts.length === 0 ? (
+      {loadingSavedDrafts ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-book-red" />
+        </div>
+      ) : savedDrafts.length === 0 ? (
         <Card className="mb-8 bg-muted/40">
           <CardContent className="text-center py-12">
             <p className="text-muted-foreground mb-4">You don't have any saved drafts yet.</p>

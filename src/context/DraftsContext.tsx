@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
@@ -77,14 +78,16 @@ export const DraftsProvider: React.FC<{
       // Update local state
       await fetchSavedDrafts();
     } catch (error: any) {
+      console.error('Error saving draft:', error);
       toast.error(error.message || "Error saving draft");
     }
   };
   
-  // Fetch user's saved drafts - converted to useCallback to prevent dependency issues
+  // Fetch user's saved drafts
   const fetchSavedDrafts = useCallback(async (): Promise<void> => {
     if (!user) {
       setSavedDrafts([]);
+      setLoadingSavedDrafts(false);
       return;
     }
     
@@ -96,7 +99,10 @@ export const DraftsProvider: React.FC<{
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching drafts:', error);
+        throw error;
+      }
       
       console.log('Fetched drafts:', data);
       setSavedDrafts(data || []);
@@ -110,11 +116,13 @@ export const DraftsProvider: React.FC<{
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
+    console.log('User changed, fetching drafts for user:', user?.id);
     fetchSavedDrafts();
-  }, [fetchSavedDrafts]);
+  }, [fetchSavedDrafts, user]);
   
   // Load a saved draft
   const loadDraft = (draft: SavedDraft) => {
+    console.log('Loading draft in DraftsContext:', draft);
     onLoadDraft(draft);
     toast.success(`Loaded draft: ${draft.title}`);
   };
@@ -137,6 +145,7 @@ export const DraftsProvider: React.FC<{
       
       toast.success("Draft deleted successfully");
     } catch (error: any) {
+      console.error('Error deleting draft:', error);
       toast.error(error.message || "Error deleting draft");
     }
   };
