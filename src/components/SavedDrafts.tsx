@@ -22,7 +22,6 @@ const SavedDrafts = () => {
   const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts } = useBookContext();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {

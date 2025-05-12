@@ -42,13 +42,41 @@ export default function ProfileOverview() {
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
-
-        setProfileData(data);
-        setFormData({
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
-        });
+        if (error) {
+          // If no profile exists yet for the Clerk user, create one
+          if (error.code === 'PGRST116') {
+            const firstName = user.firstName || "";
+            const lastName = user.lastName || "";
+            
+            // Create new profile in Supabase
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                first_name: firstName,
+                last_name: lastName,
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single();
+              
+            if (createError) throw createError;
+            
+            setProfileData(newProfile);
+            setFormData({
+              firstName: firstName,
+              lastName: lastName,
+            });
+          } else {
+            throw error;
+          }
+        } else {
+          setProfileData(data);
+          setFormData({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+          });
+        }
       } catch (error: any) {
         toast.error(error.message || "Error loading profile");
       } finally {
@@ -74,6 +102,7 @@ export default function ProfileOverview() {
     try {
       setUpdating(true);
       
+      // Update Supabase profile
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -84,6 +113,17 @@ export default function ProfileOverview() {
         .eq('id', user.id);
 
       if (error) throw error;
+      
+      // Also update Clerk user metadata if available
+      try {
+        await user.update({
+          firstName: formData.firstName || undefined,
+          lastName: formData.lastName || undefined
+        });
+      } catch (clerkError) {
+        console.error("Failed to update Clerk profile:", clerkError);
+        // Continue with the flow even if Clerk update fails
+      }
       
       toast.success("Profile updated successfully");
       
@@ -126,7 +166,7 @@ export default function ProfileOverview() {
               <Label htmlFor="email">Email</Label>
               <Input 
                 id="email"
-                value={user?.email || ""}
+                value={user?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
                 disabled
                 className="bg-gray-50"
               />
