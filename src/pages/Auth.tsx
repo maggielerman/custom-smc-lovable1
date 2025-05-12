@@ -43,6 +43,7 @@ const Auth = () => {
       // No need to navigate, useEffect will handle it
     } catch (error: any) {
       console.error("Login error:", error);
+    } finally {
       setIsProcessing(false);
     }
   };

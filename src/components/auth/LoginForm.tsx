@@ -74,7 +74,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
               type="button" 
               variant="link" 
               className="text-sm text-book-red p-0 h-auto"
-              onClick={() => toast.info("Password reset feature coming soon")}
+              onClick={() => toast.info("Password reset available on your Clerk account page")}
             >
               Forgot password?
             </Button>

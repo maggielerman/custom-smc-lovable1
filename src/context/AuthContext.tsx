@@ -1,12 +1,18 @@
 
-import React, { createContext, useState, useEffect, useContext } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useContext } from "react";
+import { 
+  useAuth as useClerkAuth, 
+  useUser, 
+  useSignIn, 
+  useSignUp,
+  SignInResource,
+  SignUpResource
+} from "@clerk/clerk-react";
 import { toast } from "sonner";
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  session: any | null;
+  user: any | null;
   loading: boolean;
   signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -16,96 +22,66 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { isLoaded: isAuthLoaded, isSignedIn } = useClerkAuth();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
+  const { signUp, isLoaded: isSignUpLoaded } = useSignUp();
 
-  useEffect(() => {
-    console.log("AuthContext: Setting up auth state listener");
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log("AuthContext: Auth state changed", { event, user: newSession?.user?.email });
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (event === 'SIGNED_IN') {
-          toast.success("Successfully signed in");
-        } else if (event === 'SIGNED_OUT') {
-          toast.info("You have been signed out");
-        }
-      }
-    );
+  // Determine if we're still loading auth data
+  const loading = !isAuthLoaded || !isUserLoaded || !isSignInLoaded || !isSignUpLoaded;
 
-    // THEN check for existing session
-    const checkSession = async () => {
-      try {
-        console.log("AuthContext: Checking for existing session");
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log("AuthContext: Initial session check complete", { 
-          hasSession: !!initialSession, 
-          userEmail: initialSession?.user?.email 
-        });
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-      } catch (error) {
-        console.error("AuthContext: Error checking session", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkSession();
-
-    return () => {
-      console.log("AuthContext: Unsubscribing from auth state changes");
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signUp = async (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => {
+  const handleSignUp = async (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => {
     try {
       console.log("AuthContext: Attempting to sign up", { email });
-      const { error } = await supabase.auth.signUp({
-        email,
+      
+      await signUp.create({
+        emailAddress: email,
         password,
-        options: {
-          data: metadata
-        }
+        firstName: metadata?.first_name || undefined,
+        lastName: metadata?.last_name || undefined
       });
-
-      if (error) throw error;
-      toast.success("Registration successful! Check your email to confirm your account.");
+      
+      // Redirect to verify email if signup requires verification
+      if (signUp.status === 'complete') {
+        toast.success("Registration successful! You can now sign in.");
+      } else if (signUp.status === 'needs_verification') {
+        toast.success("Registration successful! Check your email to confirm your account.");
+      }
+      
     } catch (error: any) {
       console.error("AuthContext: Sign up error", error);
-      toast.error(error.message || "An error occurred during signup");
+      toast.error(error.errors?.[0]?.message || "An error occurred during signup");
       throw error;
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string) => {
     try {
       console.log("AuthContext: Attempting to sign in", { email });
-      const { error, data } = await supabase.auth.signInWithPassword({
-        email,
+      
+      await signIn.create({
+        identifier: email,
         password,
       });
-
-      if (error) throw error;
-      console.log("AuthContext: Sign in successful", { user: data?.user?.email });
+      
+      if (signIn.status === 'complete') {
+        console.log("AuthContext: Sign in successful");
+        toast.success("Successfully signed in");
+      }
+      
     } catch (error: any) {
       console.error("AuthContext: Sign in error", error);
-      toast.error(error.message || "Failed to sign in");
+      toast.error(error.errors?.[0]?.message || "Failed to sign in");
       throw error;
     }
   };
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     try {
       console.log("AuthContext: Attempting to sign out");
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await window.Clerk?.signOut();
       console.log("AuthContext: Sign out successful");
+      toast.info("You have been signed out");
     } catch (error: any) {
       console.error("AuthContext: Sign out error", error);
       toast.error(error.message || "Failed to sign out");
@@ -114,12 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = {
-    session,
-    user,
+    session: isSignedIn ? { user } : null,
+    user: isSignedIn ? user : null,
     loading,
-    signUp,
-    signIn,
-    signOut,
+    signUp: handleSignUp,
+    signIn: handleSignIn,
+    signOut: handleSignOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

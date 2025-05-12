@@ -17,7 +17,6 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import BlogAdmin from "./pages/BlogAdmin";
 import NotFound from "./pages/NotFound";
-import MFASetup from "./pages/MFASetup";
 import Downloads from "./pages/Downloads";
 
 // Account Pages
@@ -55,7 +54,6 @@ const App = () => {
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/blog-admin" element={<BlogAdmin />} />
-                    <Route path="/mfa-setup" element={<MFASetup />} />
                     <Route path="/downloads" element={<Downloads />} />
                     
                     {/* Account Routes */}
