@@ -20,14 +20,14 @@ import {
 
 const SavedDrafts = () => {
   const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts } = useBookContext();
-  const { user } = useAuth();
+  const { user, isLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (isLoaded && user) {
       fetchSavedDrafts();
     }
-  }, [user, fetchSavedDrafts]);
+  }, [isLoaded, user, fetchSavedDrafts]);
 
   const handleLoadDraft = (draftIndex: number) => {
     const draft = savedDrafts[draftIndex];
@@ -39,6 +39,14 @@ const SavedDrafts = () => {
     await deleteDraft(draftId);
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-book-red" />
+      </div>
+    );
+  }
+  
   if (!user) {
     return (
       <Card className="mb-8">

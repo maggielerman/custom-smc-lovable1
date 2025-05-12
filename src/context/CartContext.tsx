@@ -20,24 +20,24 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const { user } = useAuth();
+  const { user, userId } = useAuth();
 
   // Load cart from Supabase when user signs in
   useEffect(() => {
-    if (user) {
+    if (userId) {
       loadCart();
     }
-  }, [user]);
+  }, [userId]);
 
   // Load cart from Supabase
   const loadCart = async () => {
-    if (!user) return;
+    if (!userId) return;
     
     try {
       const { data, error } = await supabase
         .from('saved_carts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('updated_at', { ascending: false })
         .limit(1);
         
@@ -61,7 +61,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save cart to Supabase
   const saveCart = async (items: CartItem[]) => {
-    if (!user) return;
+    if (!userId) return;
     
     try {
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
@@ -70,7 +70,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: existingCarts } = await supabase
         .from('saved_carts')
         .select('id')
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
         
       if (existingCarts && existingCarts.length > 0) {
         // Update existing cart
@@ -87,7 +87,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase
           .from('saved_carts')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             items: items as unknown as Json,
             total_amount: totalAmount
           });
@@ -99,7 +99,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Save cart with a specific name
   const saveCartWithName = async (name: string) => {
-    if (!user) {
+    if (!userId) {
       toast.error("Please sign in to save carts");
       return;
     }
@@ -115,7 +115,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase
         .from('saved_carts')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           name,
           items: cartItems as unknown as Json,
           total_amount: totalAmount
@@ -136,7 +136,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCartItems(updatedCart);
       
       // If user is logged in, try to save cart to Supabase
-      if (user) saveCart(updatedCart);
+      if (userId) saveCart(updatedCart);
     }
   };
   
@@ -145,14 +145,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartItems(updatedCart);
     
     // If user is logged in, update saved cart
-    if (user) saveCart(updatedCart);
+    if (userId) saveCart(updatedCart);
   };
   
   const clearCart = () => {
     setCartItems([]);
     
     // If user is logged in, update saved cart
-    if (user) saveCart([]);
+    if (userId) saveCart([]);
   };
 
   // Calculate cart total
