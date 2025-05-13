@@ -24,7 +24,9 @@ const Auth = () => {
       if (searchParams.has('oauth_callback')) {
         try {
           setIsProcessing(true);
-          await handleRedirectCallback({ redirectUrl: window.location.href });
+          console.log("Auth page: Processing OAuth callback");
+          await handleRedirectCallback();
+          console.log("Auth page: OAuth callback processed");
         } catch (err) {
           console.error("OAuth callback error:", err);
         } finally {
@@ -72,7 +74,9 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsProcessing(true);
+      console.log("Auth page: Calling signInWithGoogle");
       await signInWithGoogle();
+      console.log("Auth page: signInWithGoogle completed");
     } catch (error) {
       console.error("Google login error:", error);
     } finally {

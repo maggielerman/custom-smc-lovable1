@@ -26,8 +26,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isLoaded: isAuthLoaded, isSignedIn } = useClerkAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
-  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
-  const { signUp, isLoaded: isSignUpLoaded } = useSignUp();
+  const { signIn: clerkSignIn, isLoaded: isSignInLoaded } = useSignIn();
+  const { signUp: clerkSignUp, isLoaded: isSignUpLoaded } = useSignUp();
   const clerk = useClerk();
   
   // State to track if components should re-render after auth changes
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("AuthContext: Attempting to sign up", { email });
       
-      await signUp.create({
+      await clerkSignUp.create({
         emailAddress: email,
         password,
         firstName: metadata?.first_name || undefined,
@@ -60,18 +60,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       // Check signup status
-      if (signUp.status === 'complete') {
+      if (clerkSignUp.status === 'complete') {
         toast.success("Registration successful! You can now sign in.");
         
         // If sign up is complete, try to sign in immediately
         try {
-          await signIn.create({
+          await clerkSignIn.create({
             identifier: email,
             password,
           });
           
-          if (signIn.status === 'complete') {
-            await clerk.setActive({ session: signIn.createdSessionId });
+          if (clerkSignIn.status === 'complete') {
+            await clerk.setActive({ session: clerkSignIn.createdSessionId });
             console.log("Auto sign-in successful after registration");
           }
         } catch (signInError) {
@@ -93,15 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("AuthContext: Attempting to sign in", { email });
       
-      await signIn.create({
+      await clerkSignIn.create({
         identifier: email,
         password,
       });
       
-      if (signIn.status === 'complete') {
+      if (clerkSignIn.status === 'complete') {
         console.log("AuthContext: Sign in successful, setting active session");
         // Ensure the session is activated
-        await clerk.setActive({ session: signIn.createdSessionId });
+        await clerk.setActive({ session: clerkSignIn.createdSessionId });
         toast.success("Successfully signed in");
       }
       
@@ -115,10 +115,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignInWithGoogle = async () => {
     try {
       console.log("AuthContext: Attempting to sign in with Google");
-      await signIn.authenticateWithRedirect({
+      await clerkSignIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: "/",
-        redirectUrlComplete: "/",
+        redirectUrl: window.location.origin + "/auth",
+        redirectUrlComplete: window.location.origin,
       });
     } catch (error: any) {
       console.error("AuthContext: Google sign in error", error);
