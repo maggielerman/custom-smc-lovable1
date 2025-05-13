@@ -31,53 +31,65 @@ export default function ProfileOverview() {
 
   useEffect(() => {
     if (!user) {
+      setLoading(false);
       return;
     }
 
     const fetchProfile = async () => {
       try {
+        console.log("Fetching profile for user ID:", user.id);
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          // If no profile exists yet for the Clerk user, create one
-          if (error.code === 'PGRST116') {
-            const firstName = user.firstName || "";
-            const lastName = user.lastName || "";
-            
-            // Create new profile in Supabase
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                first_name: firstName,
-                last_name: lastName,
-                updated_at: new Date().toISOString()
-              })
-              .select()
-              .single();
-              
-            if (createError) throw createError;
-            
-            setProfileData(newProfile);
-            setFormData({
-              firstName: firstName,
-              lastName: lastName,
-            });
-          } else {
-            throw error;
-          }
-        } else {
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+        
+        // If profile exists, use it
+        if (data) {
+          console.log("Profile found:", data);
           setProfileData(data);
           setFormData({
             firstName: data.first_name || "",
             lastName: data.last_name || "",
           });
+        } 
+        // If no profile exists yet for the Clerk user, create one
+        else {
+          console.log("No profile found, creating new profile");
+          const firstName = user.firstName || "";
+          const lastName = user.lastName || "";
+          
+          // Create new profile in Supabase
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              first_name: firstName,
+              last_name: lastName,
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            throw createError;
+          }
+          
+          console.log("Created new profile:", newProfile);
+          setProfileData(newProfile);
+          setFormData({
+            firstName: firstName,
+            lastName: lastName,
+          });
         }
       } catch (error: any) {
+        console.error("Error in profile fetch/create:", error);
         toast.error(error.message || "Error loading profile");
       } finally {
         setLoading(false);

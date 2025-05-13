@@ -58,6 +58,7 @@ export const DraftsProvider: React.FC<{
     try {
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
+      // Use user.id directly as it comes from Clerk
       await supabase
         .from('saved_drafts')
         .insert({
@@ -93,6 +94,10 @@ export const DraftsProvider: React.FC<{
     
     try {
       setLoadingSavedDrafts(true);
+      
+      console.log('Fetching drafts for user ID:', user.id);
+      
+      // Use text filtering for Clerk's user ID format
       const { data, error } = await supabase
         .from('saved_drafts')
         .select('*')
@@ -116,8 +121,13 @@ export const DraftsProvider: React.FC<{
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
-    console.log('User changed, fetching drafts for user:', user?.id);
-    fetchSavedDrafts();
+    if (user) {
+      console.log('User changed, fetching drafts for user:', user.id);
+      fetchSavedDrafts();
+    } else {
+      console.log('No user available, clearing drafts');
+      setSavedDrafts([]);
+    }
   }, [fetchSavedDrafts, user]);
   
   // Load a saved draft

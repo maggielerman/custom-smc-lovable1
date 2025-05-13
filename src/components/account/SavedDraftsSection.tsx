@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 export default function SavedDraftsSection() {
   const { user } = useAuth();
@@ -24,13 +25,16 @@ export default function SavedDraftsSection() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // Only fetch if we have a user and we're not already loading
+    if (user && !loadingSavedDrafts) {
       console.log("SavedDraftsSection - Fetching drafts for user:", user.id);
-      fetchSavedDrafts();
+      fetchSavedDrafts().catch(error => {
+        console.error("Error fetching drafts:", error);
+      });
     } else {
-      console.log("SavedDraftsSection - No user found");
+      console.log("SavedDraftsSection - No user found or already loading");
     }
-  }, [user, fetchSavedDrafts]);
+  }, [user, fetchSavedDrafts, loadingSavedDrafts]);
 
   const handleLoadDraft = (draftIndex: number) => {
     const draft = savedDrafts[draftIndex];
@@ -40,11 +44,24 @@ export default function SavedDraftsSection() {
   };
 
   const handleDeleteDraft = async (draftId: string) => {
-    await deleteDraft(draftId);
+    try {
+      await deleteDraft(draftId);
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+      toast.error("Failed to delete draft");
+    }
   };
 
   const handleRefreshDrafts = () => {
-    fetchSavedDrafts();
+    if (user) {
+      toast.info("Refreshing drafts...");
+      fetchSavedDrafts().catch(error => {
+        console.error("Error refreshing drafts:", error);
+        toast.error("Failed to refresh drafts");
+      });
+    } else {
+      toast.error("Please sign in to view drafts");
+    }
   };
 
   console.log("SavedDraftsSection rendering with:", { loadingSavedDrafts, draftsCount: savedDrafts.length });
