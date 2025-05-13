@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartItem } from "@/types/bookTypes";
@@ -16,6 +15,29 @@ interface CartContextType {
   cartCount: number;
 }
 
+// Helper function to generate a UUID-like string from Clerk ID
+const getUserIdForSupabase = (clerkId: string): string => {
+  try {
+    // If the ID is already a valid UUID, just return it
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
+      return clerkId;
+    }
+    
+    // Otherwise create a deterministic UUID from the Clerk ID
+    const hash = Array.from(clerkId).reduce(
+      (acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0
+    );
+    
+    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => 
+      ((Number(c) ^ (hash & 15)) >> c / 4).toString(16)
+    );
+  } catch (error) {
+    console.error('Error converting Clerk ID to UUID:', error);
+    // Fallback to a fixed UUID if conversion fails
+    return '00000000-0000-0000-0000-000000000000';
+  }
+};
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -24,20 +46,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load cart from Supabase when user signs in
   useEffect(() => {
-    if (userId) {
+    if (user) {
       loadCart();
     }
-  }, [userId]);
+  }, [user]);
 
   // Load cart from Supabase
   const loadCart = async () => {
-    if (!userId) return;
+    if (!user) return;
     
     try {
+      const supabaseUserId = getUserIdForSupabase(user.id);
+      console.log('Loading cart for user:', user.id);
+      console.log('Using Supabase user ID:', supabaseUserId);
+      
       const { data, error } = await supabase
         .from('saved_carts')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', supabaseUserId)
         .order('updated_at', { ascending: false })
         .limit(1);
         
@@ -61,16 +87,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save cart to Supabase
   const saveCart = async (items: CartItem[]) => {
-    if (!userId) return;
+    if (!user) return;
     
     try {
+      const supabaseUserId = getUserIdForSupabase(user.id);
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
       
       // Check if user has a saved cart
       const { data: existingCarts } = await supabase
         .from('saved_carts')
         .select('id')
-        .eq('user_id', userId);
+        .eq('user_id', supabaseUserId);
         
       if (existingCarts && existingCarts.length > 0) {
         // Update existing cart
@@ -87,7 +114,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase
           .from('saved_carts')
           .insert({
-            user_id: userId,
+            user_id: supabaseUserId,
             items: items as unknown as Json,
             total_amount: totalAmount
           });
@@ -99,7 +126,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Save cart with a specific name
   const saveCartWithName = async (name: string) => {
-    if (!userId) {
+    if (!user) {
       toast.error("Please sign in to save carts");
       return;
     }
@@ -110,12 +137,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
+      const supabaseUserId = getUserIdForSupabase(user.id);
       const totalAmount = cartItems.reduce((total, item) => total + item.price, 0);
       
       await supabase
         .from('saved_carts')
         .insert({
-          user_id: userId,
+          user_id: supabaseUserId,
           name,
           items: cartItems as unknown as Json,
           total_amount: totalAmount
@@ -136,7 +164,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCartItems(updatedCart);
       
       // If user is logged in, try to save cart to Supabase
-      if (userId) saveCart(updatedCart);
+      if (user) saveCart(updatedCart);
     }
   };
   
@@ -145,14 +173,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartItems(updatedCart);
     
     // If user is logged in, update saved cart
-    if (userId) saveCart(updatedCart);
+    if (user) saveCart(updatedCart);
   };
   
   const clearCart = () => {
     setCartItems([]);
     
     // If user is logged in, update saved cart
-    if (userId) saveCart([]);
+    if (user) saveCart([]);
   };
 
   // Calculate cart total

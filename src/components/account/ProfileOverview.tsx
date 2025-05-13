@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +15,29 @@ interface ProfileData {
   last_name: string | null;
   avatar_url: string | null;
 }
+
+// Helper function to generate a UUID-like string from Clerk ID
+const getUserIdForSupabase = (clerkId: string): string => {
+  try {
+    // If the ID is already a valid UUID, just return it
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
+      return clerkId;
+    }
+    
+    // Otherwise create a deterministic UUID from the Clerk ID
+    const hash = Array.from(clerkId).reduce(
+      (acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0
+    );
+    
+    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => 
+      ((Number(c) ^ (hash & 15)) >> c / 4).toString(16)
+    );
+  } catch (error) {
+    console.error('Error converting Clerk ID to UUID:', error);
+    // Fallback to a fixed UUID if conversion fails
+    return '00000000-0000-0000-0000-000000000000';
+  }
+};
 
 export default function ProfileOverview() {
   const { user, signOut } = useAuth();
@@ -37,12 +59,14 @@ export default function ProfileOverview() {
 
     const fetchProfile = async () => {
       try {
+        const supabaseUserId = getUserIdForSupabase(user.id);
         console.log("Fetching profile for user ID:", user.id);
+        console.log("Using Supabase user ID:", supabaseUserId);
         
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', supabaseUserId)
           .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
@@ -68,7 +92,7 @@ export default function ProfileOverview() {
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
-              id: user.id,
+              id: supabaseUserId,
               first_name: firstName,
               last_name: lastName,
               updated_at: new Date().toISOString()
@@ -113,6 +137,7 @@ export default function ProfileOverview() {
     
     try {
       setUpdating(true);
+      const supabaseUserId = getUserIdForSupabase(user.id);
       
       // Update Supabase profile
       const { error } = await supabase
@@ -122,7 +147,7 @@ export default function ProfileOverview() {
           last_name: formData.lastName || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq('id', supabaseUserId);
 
       if (error) throw error;
       

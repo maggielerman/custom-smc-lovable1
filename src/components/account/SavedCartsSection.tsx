@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +18,30 @@ interface SavedCart {
   updated_at: string;
 }
 
+// Helper function to generate a UUID-like string from Clerk ID
+// This is a temporary solution until we can update the database schema
+const getUserIdForSupabase = (clerkId: string): string => {
+  try {
+    // If the ID is already a valid UUID, just return it
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
+      return clerkId;
+    }
+    
+    // Otherwise create a deterministic UUID v5 from the Clerk ID
+    const hash = Array.from(clerkId).reduce(
+      (acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0
+    );
+    
+    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => 
+      ((Number(c) ^ (hash & 15)) >> c / 4).toString(16)
+    );
+  } catch (error) {
+    console.error('Error converting Clerk ID to UUID:', error);
+    // Fallback to a fixed UUID if conversion fails
+    return '00000000-0000-0000-0000-000000000000';
+  }
+};
+
 export default function SavedCartsSection() {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -35,10 +58,20 @@ export default function SavedCartsSection() {
     try {
       setLoading(true);
       
+      if (!user) {
+        setSavedCarts([]);
+        return;
+      }
+      
+      // Convert Clerk ID to UUID format for Supabase
+      const supabaseUserId = getUserIdForSupabase(user.id);
+      console.log('Fetching saved carts for user:', user.id);
+      console.log('Using Supabase user ID:', supabaseUserId);
+      
       const { data, error } = await supabase
         .from('saved_carts')
         .select('*')
-        .eq('user_id', user?.id || '')
+        .eq('user_id', supabaseUserId)
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
@@ -69,11 +102,15 @@ export default function SavedCartsSection() {
   
   const handleDeleteCart = async (cartId: string) => {
     try {
+      if (!user) return;
+      
+      const supabaseUserId = getUserIdForSupabase(user.id);
+      
       const { error } = await supabase
         .from('saved_carts')
         .delete()
         .eq('id', cartId)
-        .eq('user_id', user?.id || '');
+        .eq('user_id', supabaseUserId);
       
       if (error) throw error;
       
