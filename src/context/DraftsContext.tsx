@@ -58,7 +58,7 @@ export const DraftsProvider: React.FC<{
     try {
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
-      // Use user.id directly as it comes from Clerk
+      // Store Clerk user ID as text instead of trying to cast to UUID
       await supabase
         .from('saved_drafts')
         .insert({
@@ -87,6 +87,7 @@ export const DraftsProvider: React.FC<{
   // Fetch user's saved drafts
   const fetchSavedDrafts = useCallback(async (): Promise<void> => {
     if (!user) {
+      console.log("No user available, clearing drafts");
       setSavedDrafts([]);
       setLoadingSavedDrafts(false);
       return;
