@@ -25,7 +25,7 @@ const Auth = () => {
         try {
           setIsProcessing(true);
           console.log("Auth page: Processing OAuth callback");
-          await handleRedirectCallback();
+          await handleRedirectCallback({ redirectUrl: window.location.href });
           console.log("Auth page: OAuth callback processed");
         } catch (err) {
           console.error("OAuth callback error:", err);

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   useAuth as useClerkAuth, 
@@ -117,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("AuthContext: Attempting to sign in with Google");
       await clerkSignIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: window.location.origin + "/auth",
+        redirectUrl: `${window.location.origin}/auth?oauth_callback=true`,
         redirectUrlComplete: window.location.origin,
       });
     } catch (error: any) {
