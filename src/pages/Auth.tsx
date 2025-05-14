@@ -57,7 +57,7 @@ const Auth = () => {
           </TabsList>
           
           <TabsContent value="login">
-            <Card className="p-6 overflow-hidden">
+            <Card className="">
               <SignIn 
                 appearance={{
                   elements: {
