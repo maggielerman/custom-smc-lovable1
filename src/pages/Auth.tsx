@@ -81,7 +81,7 @@ const Auth = () => {
           </TabsContent>
           
           <TabsContent value="register">
-            <Card className="p-6 overflow-hidden">
+            <Card className="">
               <SignUp 
                 appearance={{
                   elements: {
