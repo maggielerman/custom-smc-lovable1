@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { Helmet } from "react-helmet";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 const Auth = () => {
@@ -57,51 +56,51 @@ const Auth = () => {
           </TabsList>
           
           <TabsContent value="login">
-            <Card className="">
-              <SignIn 
-                appearance={{
-                  elements: {
-                    rootBox: "w-full",
-                    card: "shadow-none p-0 border-0",
-                    formButtonPrimary: "bg-book-red hover:bg-red-700",
-                    footerActionLink: "text-book-red hover:text-red-700",
-                    formFieldInput: "rounded-md border border-input bg-background",
-                    formFieldLabel: "text-sm font-medium",
-                    formHeaderTitle: "text-xl font-semibold",
-                    formHeaderSubtitle: "text-sm text-muted-foreground",
-                    socialButtonsBlockButton: "border border-gray-300 bg-white hover:bg-gray-50"
-                  }
-                }}
-                routing="path"
-                path="/auth"
-                signUpUrl="/auth?tab=register"
-                redirectUrl={location.state?.from?.pathname || "/"}
-              />
-            </Card>
+            <SignIn 
+              appearance={{
+                baseTheme: "light",
+                elements: {
+                  rootBox: "w-full",
+                  card: "shadow-md rounded-lg p-8 border border-gray-200",
+                  headerTitle: "text-xl font-semibold text-gray-800",
+                  headerSubtitle: "text-sm text-gray-500",
+                  formButtonPrimary: "bg-book-red hover:bg-red-700 text-white rounded-md px-4 py-2 font-medium",
+                  formFieldInput: "rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-book-red focus:border-transparent",
+                  footerActionLink: "text-book-red hover:text-red-700 font-medium",
+                  socialButtonsBlockButton: "border border-gray-300 rounded-md p-2.5 hover:bg-gray-50",
+                  formFieldLabel: "text-sm font-medium text-gray-700",
+                  dividerText: "text-sm text-gray-500",
+                  formFieldAction: "text-sm text-book-red hover:text-red-700",
+                  identityPreviewEditButton: "text-book-red hover:text-red-700"
+                }
+              }}
+              signUpUrl="/auth?tab=register"
+              redirectUrl={location.state?.from?.pathname || "/"}
+            />
           </TabsContent>
           
           <TabsContent value="register">
-            <Card className="">
-              <SignUp 
-                appearance={{
-                  elements: {
-                    rootBox: "w-full",
-                    card: "shadow-none p-0 border-0",
-                    formButtonPrimary: "bg-book-red hover:bg-red-700",
-                    footerActionLink: "text-book-red hover:text-red-700",
-                    formFieldInput: "rounded-md border border-input bg-background",
-                    formFieldLabel: "text-sm font-medium",
-                    formHeaderTitle: "text-xl font-semibold",
-                    formHeaderSubtitle: "text-sm text-muted-foreground",
-                    socialButtonsBlockButton: "border border-gray-300 bg-white hover:bg-gray-50"
-                  }
-                }}
-                routing="path"
-                path="/auth"
-                signInUrl="/auth"
-                redirectUrl="/"
-              />
-            </Card>
+            <SignUp 
+              appearance={{
+                baseTheme: "light",
+                elements: {
+                  rootBox: "w-full",
+                  card: "shadow-md rounded-lg p-8 border border-gray-200",
+                  headerTitle: "text-xl font-semibold text-gray-800",
+                  headerSubtitle: "text-sm text-gray-500",
+                  formButtonPrimary: "bg-book-red hover:bg-red-700 text-white rounded-md px-4 py-2 font-medium",
+                  formFieldInput: "rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-book-red focus:border-transparent",
+                  footerActionLink: "text-book-red hover:text-red-700 font-medium",
+                  socialButtonsBlockButton: "border border-gray-300 rounded-md p-2.5 hover:bg-gray-50",
+                  formFieldLabel: "text-sm font-medium text-gray-700",
+                  dividerText: "text-sm text-gray-500",
+                  formFieldAction: "text-sm text-book-red hover:text-red-700",
+                  identityPreviewEditButton: "text-book-red hover:text-red-700"
+                }
+              }}
+              signInUrl="/auth"
+              redirectUrl="/"
+            />
           </TabsContent>
         </Tabs>
       </div>
