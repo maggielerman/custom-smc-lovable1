@@ -19,12 +19,16 @@ const CLERK_NAMESPACE = "f0e7d856-1081-4e5c-bc60-a52601464d98";
  * This ensures the same Clerk ID always maps to the same Supabase UUID
  */
 export function clerkToSupabaseId(clerkId: string): string {
-  if (!clerkId) return '';
+  if (!clerkId) {
+    console.error("Missing Clerk ID");
+    return '00000000-0000-0000-0000-000000000000';
+  }
   
   // Generate a deterministic v5 UUID based on the Clerk ID and our namespace
   try {
-    // Create a UUID v5 using the clerkId as name and our namespace
-    return uuidv5(clerkId, CLERK_NAMESPACE);
+    const uuid = uuidv5(clerkId, CLERK_NAMESPACE);
+    console.log(`Converted Clerk ID ${clerkId} to Supabase UUID ${uuid}`);
+    return uuid;
   } catch (error) {
     console.error("Failed to generate UUID from Clerk ID:", error);
     // Fallback to a default UUID (not ideal, but prevents crashes)

@@ -8,13 +8,16 @@ import { clerkToSupabaseId } from "@/lib/utils";
  * and keeps profile data synchronized between the two systems
  */
 export const ensureProfileExists = async (user: any) => {
-  if (!user) return;
+  if (!user) {
+    console.error("No user provided to ensureProfileExists");
+    return;
+  }
   
   try {
     const clerkId = user.id;
     const supabaseId = clerkToSupabaseId(clerkId);
     
-    console.log("Checking profile:", { 
+    console.log("Ensuring profile exists:", { 
       clerkId, 
       supabaseId,
       firstName: user.firstName,
@@ -39,7 +42,7 @@ export const ensureProfileExists = async (user: any) => {
     
     // If profile doesn't exist, create it
     if (!data) {
-      console.log("Creating new profile with ID:", supabaseId);
+      console.log("Profile not found. Creating new profile with ID:", supabaseId);
       const { error: createError } = await supabase
         .from('profiles')
         .insert({

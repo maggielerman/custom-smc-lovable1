@@ -40,8 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ensureProfileExists(user)
             .catch(err => {
               console.error("Failed to ensure profile exists:", err);
+              toast.error("There was a problem with your profile. Please try logging out and back in.");
             });
-        }, 500);
+        }, 1000); // Increased delay to 1000ms for better reliability
       }
     }
   }, [isLoaded, isSignedIn, user]);
