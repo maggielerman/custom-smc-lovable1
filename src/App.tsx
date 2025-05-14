@@ -12,7 +12,6 @@ import Index from "./pages/Index";
 import CreateBook from "./pages/CreateBook";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import BlogAdmin from "./pages/BlogAdmin";
