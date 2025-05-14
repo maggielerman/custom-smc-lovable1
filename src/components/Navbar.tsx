@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -62,6 +61,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Cart className="mr-2" />
             
+            {/* Auth buttons */}
             {isLoaded && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

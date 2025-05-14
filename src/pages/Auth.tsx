@@ -1,56 +1,27 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Helmet } from "react-helmet";
+import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LoginForm from "@/components/auth/LoginForm";
-import RegisterForm from "@/components/auth/RegisterForm";
+import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useClerk } from "@clerk/clerk-react";
-import { toast } from "sonner";
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp, loading, isLoaded, signInWithGoogle } = useAuth();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { handleRedirectCallback } = useClerk();
+  const { user, loading, isLoaded } = useAuth();
+  const [activeTab, setActiveTab] = React.useState<"login" | "register">("login");
 
-  // Handle OAuth callback
+  // Set active tab based on query param
   useEffect(() => {
-    async function processOAuthCallback() {
-      // Check if this is an OAuth callback
-      const searchParams = new URLSearchParams(window.location.search);
-      if (searchParams.has('oauth_callback')) {
-        try {
-          setIsProcessing(true);
-          console.log("Auth page: Processing OAuth callback", window.location.href);
-          
-          // Process the redirect callback
-          await handleRedirectCallback({ 
-            redirectUrl: window.location.href,
-          });
-          
-          console.log("Auth page: OAuth callback processed successfully");
-          toast.success("Successfully authenticated with Google");
-          
-          // Navigate home after successful callback
-          navigate('/', { replace: true });
-        } catch (err) {
-          console.error("OAuth callback error:", err);
-          toast.error("Failed to complete authentication. Please try again.");
-        } finally {
-          setIsProcessing(false);
-        }
-      }
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab === "register") {
+      setActiveTab("register");
     }
-    
-    if (isLoaded) {
-      processOAuthCallback();
-    }
-  }, [handleRedirectCallback, isLoaded, navigate]);
+  }, [location]);
 
   // If user is already logged in, redirect to home or the page they were trying to access
   useEffect(() => {
@@ -62,72 +33,12 @@ const Auth = () => {
     }
   }, [user, isLoaded, navigate, location]);
 
-  // Set active tab based on query param
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tab = params.get("tab");
-    if (tab === "register") {
-      setActiveTab("register");
-    }
-  }, [location]);
-
-  const handleLogin = async (email: string, password: string) => {
-    try {
-      setIsProcessing(true);
-      console.log("Auth page: Calling signIn with email:", email);
-      await signIn(email, password);
-      console.log("Auth page: signIn completed successfully");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      // Error is handled in AuthContext with toasts
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsProcessing(true);
-      console.log("Auth page: Calling signInWithGoogle");
-      await signInWithGoogle();
-      console.log("Auth page: signInWithGoogle initiated");
-    } catch (error) {
-      console.error("Google login error:", error);
-      toast.error("Failed to initiate Google login. Please try again.");
-      setIsProcessing(false);
-    }
-    // Note: We don't set isProcessing to false here because the redirect will happen
-  };
-
-  const handleRegister = async (email: string, password: string, firstName: string, lastName: string) => {
-    try {
-      setIsProcessing(true);
-      const metadata = {
-        first_name: firstName || undefined,
-        last_name: lastName || undefined
-      };
-      
-      console.log("Auth page: Calling signUp with email:", email);
-      await signUp(email, password, metadata);
-      console.log("Auth page: signUp completed");
-      
-      // Auto switch to login tab if signUp requires confirmation
-      setActiveTab("login");
-      toast.success("Account created! You can now sign in.");
-    } catch (error) {
-      console.error("Registration error:", error);
-      // Error is handled in AuthContext with toasts
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   // If still loading auth state, show loading
-  if (loading || isProcessing) {
+  if (loading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-book-red mb-4" />
-        <p className="text-gray-600">{isProcessing ? "Processing your request..." : "Checking authentication..."}</p>
+        <p className="text-gray-600">Checking authentication...</p>
       </div>
     );
   }
@@ -146,11 +57,41 @@ const Auth = () => {
           </TabsList>
           
           <TabsContent value="login">
-            <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleLogin} />
+            <Card className="p-0 overflow-hidden">
+              <SignIn 
+                appearance={{
+                  elements: {
+                    rootBox: "w-full",
+                    card: "shadow-none p-0",
+                    formButtonPrimary: "bg-book-red hover:bg-red-700",
+                    footerActionLink: "text-book-red hover:text-red-700"
+                  }
+                }}
+                routing="path"
+                path="/auth"
+                signUpUrl="/auth?tab=register"
+                redirectUrl={location.state?.from?.pathname || "/"}
+              />
+            </Card>
           </TabsContent>
           
           <TabsContent value="register">
-            <RegisterForm onSubmit={handleRegister} onGoogleSignIn={handleGoogleLogin} />
+            <Card className="p-0 overflow-hidden">
+              <SignUp 
+                appearance={{
+                  elements: {
+                    rootBox: "w-full",
+                    card: "shadow-none p-0",
+                    formButtonPrimary: "bg-book-red hover:bg-red-700",
+                    footerActionLink: "text-book-red hover:text-red-700"
+                  }
+                }}
+                routing="path"
+                path="/auth"
+                signInUrl="/auth"
+                redirectUrl="/"
+              />
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
