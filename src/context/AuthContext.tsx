@@ -34,7 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If user is signed in, ensure their profile exists in Supabase
       if (isSignedIn && user) {
-        ensureProfileExists(user);
+        // Add some delay to ensure Clerk has fully processed the authentication
+        setTimeout(() => {
+          console.log("Ensuring profile exists for user:", user.id);
+          ensureProfileExists(user)
+            .catch(err => {
+              console.error("Failed to ensure profile exists:", err);
+            });
+        }, 500);
       }
     }
   }, [isLoaded, isSignedIn, user]);
