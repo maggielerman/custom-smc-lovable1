@@ -21,15 +21,23 @@ const Auth = () => {
   // Handle OAuth callback
   useEffect(() => {
     async function processOAuthCallback() {
+      // Check if this is an OAuth callback
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.has('oauth_callback')) {
         try {
           setIsProcessing(true);
-          console.log("Auth page: Processing OAuth callback");
-          await handleRedirectCallback({ redirectUrl: window.location.href });
+          console.log("Auth page: Processing OAuth callback", window.location.href);
+          
+          // Process the redirect callback
+          await handleRedirectCallback({ 
+            redirectUrl: window.location.href,
+          });
+          
           console.log("Auth page: OAuth callback processed successfully");
-          // Show success toast when OAuth is completed
           toast.success("Successfully authenticated with Google");
+          
+          // Navigate home after successful callback
+          navigate('/', { replace: true });
         } catch (err) {
           console.error("OAuth callback error:", err);
           toast.error("Failed to complete authentication. Please try again.");
@@ -39,8 +47,10 @@ const Auth = () => {
       }
     }
     
-    processOAuthCallback();
-  }, [handleRedirectCallback]);
+    if (isLoaded) {
+      processOAuthCallback();
+    }
+  }, [handleRedirectCallback, isLoaded, navigate]);
 
   // If user is already logged in, redirect to home or the page they were trying to access
   useEffect(() => {
@@ -84,9 +94,9 @@ const Auth = () => {
     } catch (error) {
       console.error("Google login error:", error);
       toast.error("Failed to initiate Google login. Please try again.");
-    } finally {
       setIsProcessing(false);
     }
+    // Note: We don't set isProcessing to false here because the redirect will happen
   };
 
   const handleRegister = async (email: string, password: string, firstName: string, lastName: string) => {

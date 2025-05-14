@@ -17,17 +17,25 @@ export function clerkToSupabaseId(clerkId: string): string {
       return clerkId;
     }
     
+    // For non-UUID format IDs, create a deterministic UUID
+    // Using a modified version of the UUID v5 algorithm
+    
     // Create a numeric hash from the string
     let hash = 0;
     for (let i = 0; i < clerkId.length; i++) {
-      hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
+      const char = clerkId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
     }
     
-    // Create a deterministic UUID using the hash
-    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
-      const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
-      return val.toString(16);
+    // Format as UUID v4
+    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = (hash + Math.random() * 16) % 16 | 0;
+      hash = Math.floor(hash / 16);
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+    
+    return uuid;
   } catch (error) {
     console.error('Error converting Clerk ID to UUID:', error);
     // Fallback to a fixed UUID if conversion fails

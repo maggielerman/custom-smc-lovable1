@@ -42,12 +42,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, onGoogleSignIn }) => {
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleSubmitting(true);
+      console.log("Login form: Initiating Google sign-in");
       await onGoogleSignIn();
+      // Note: We won't reach this code if redirect happens
     } catch (error) {
-      // Error is handled in the parent component
-    } finally {
+      console.error("Login form Google error:", error);
       setIsGoogleSubmitting(false);
+      // Error is handled in the parent component
     }
+    // We don't set isGoogleSubmitting to false here as we'll redirect
   };
 
   return (

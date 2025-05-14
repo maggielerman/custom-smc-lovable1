@@ -129,9 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (signInError) {
           console.error("Failed to auto sign in after registration", signInError);
         }
-      } else {
-        // Handle all other statuses
+      } else if (clerkSignUp.status === 'needs-verification') {
         toast.success("Registration successful! Check your email to confirm your account.");
+      } else {
+        toast.success("Registration successful! Please proceed to sign in.");
       }
       
     } catch (error: any) {
@@ -167,11 +168,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignInWithGoogle = async () => {
     try {
       console.log("AuthContext: Attempting to sign in with Google");
+      
+      // Use the current URL's origin instead of hardcoded value to ensure proper redirect
+      const currentOrigin = window.location.origin;
+      
       await clerkSignIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: `${window.location.origin}/auth?oauth_callback=true`,
-        redirectUrlComplete: window.location.origin,
+        redirectUrl: `${currentOrigin}/auth?oauth_callback=true`,
+        redirectUrlComplete: currentOrigin,
       });
+      
+      console.log("AuthContext: Google OAuth redirect initiated");
     } catch (error: any) {
       console.error("AuthContext: Google sign in error", error);
       toast.error(error.errors?.[0]?.message || "Failed to sign in with Google");
