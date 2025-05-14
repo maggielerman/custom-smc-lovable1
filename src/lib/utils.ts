@@ -1,44 +1,53 @@
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
+/**
+ * Combines class names using clsx and tailwind-merge
+ */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
- * Converts a Clerk user ID to a UUID format compatible with Supabase
- * Creates a deterministic UUID from any string input
+ * Converts a Clerk user ID to a valid UUID format for Supabase
+ * Clerk IDs are in the format "user_1234567890", which needs to be 
+ * converted to a valid UUID format for Supabase
  */
 export function clerkToSupabaseId(clerkId: string): string {
-  try {
-    // If the ID is already a valid UUID, just return it
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
-      return clerkId;
-    }
-    
-    // For non-UUID format IDs, create a deterministic UUID
-    // Using a modified version of the UUID v5 algorithm
-    
-    // Create a numeric hash from the string
-    let hash = 0;
-    for (let i = 0; i < clerkId.length; i++) {
-      const char = clerkId.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    
-    // Format as UUID v4
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = (hash + Math.random() * 16) % 16 | 0;
-      hash = Math.floor(hash / 16);
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-    
-    return uuid;
-  } catch (error) {
-    console.error('Error converting Clerk ID to UUID:', error);
-    // Fallback to a fixed UUID if conversion fails
-    return '00000000-0000-0000-0000-000000000000';
-  }
+  if (!clerkId) return '';
+  
+  // Remove the "user_" prefix if present
+  const idWithoutPrefix = clerkId.startsWith('user_') 
+    ? clerkId.substring(5) 
+    : clerkId;
+  
+  // Create a deterministic UUID based on the Clerk ID
+  // This will consistently generate the same UUID for the same Clerk ID
+  let uuid = '';
+  
+  // Standard UUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where y is 8, 9, a, or b
+  
+  // Use the Clerk ID to generate the first 8 characters
+  const part1 = idWithoutPrefix.padEnd(8, '0').substring(0, 8);
+  
+  // Use the Clerk ID to generate the next 4 characters
+  const part2 = idWithoutPrefix.padEnd(12, '0').substring(8, 12);
+  
+  // The variant "4" for the 13th character (UUID version 4)
+  const part3 = '4' + idWithoutPrefix.padEnd(16, '0').substring(12, 15);
+  
+  // The variant character (8, 9, a, or b) followed by 3 more chars
+  const variantChars = ['8', '9', 'a', 'b'];
+  const variantChar = variantChars[Math.floor(idWithoutPrefix.length % 4)];
+  const part4 = variantChar + idWithoutPrefix.padEnd(19, '0').substring(15, 18);
+  
+  // The final 12 characters
+  const part5 = idWithoutPrefix.padEnd(30, '0').substring(18, 30);
+  
+  // Combine all parts into a standard UUID format
+  uuid = `${part1}-${part2}-${part3}-${part4}-${part5}`;
+  
+  return uuid;
 }
