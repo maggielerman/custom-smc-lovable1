@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   useAuth as useClerkAuth, 
@@ -129,7 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (signInError) {
           console.error("Failed to auto sign in after registration", signInError);
         }
-      } else if (clerkSignUp.status === 'needs-verification') {
+      } else if (clerkSignUp.status === 'missing_requirements' || clerkSignUp.status === 'abandoned') {
+        // Email verification might be required, or other requirements
         toast.success("Registration successful! Check your email to confirm your account.");
       } else {
         toast.success("Registration successful! Please proceed to sign in.");
