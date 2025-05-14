@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useBookContext } from "@/context/BookContext";
+import { useDrafts } from "@/context/DraftsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,8 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const SavedDrafts = () => {
-  const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts, error } = useBookContext();
+  const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts } = useBookContext();
+  const { error } = useDrafts();
   const { user, isLoaded } = useAuth();
   const navigate = useNavigate();
   const [errorShown, setErrorShown] = useState<string | null>(null);
