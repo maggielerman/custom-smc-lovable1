@@ -25,6 +25,7 @@ interface DraftsContextProps {
   loadDraft: (draft: SavedDraft) => void;
   deleteDraft: (draftId: string) => Promise<void>;
   fetchSavedDrafts: () => Promise<void>;
+  error: string | null;
 }
 
 const DraftsContext = createContext<DraftsContextProps | undefined>(undefined);
@@ -35,6 +36,8 @@ export const DraftsProvider: React.FC<{
 }> = ({ children, onLoadDraft }) => {
   const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
   const { user } = useAuth();
 
   // Save book draft to Supabase
@@ -92,17 +95,29 @@ export const DraftsProvider: React.FC<{
     }
   };
   
-  // Fetch user's saved drafts
+  // Fetch user's saved drafts with debounce and error handling
   const fetchSavedDrafts = useCallback(async (): Promise<void> => {
+    // Don't fetch if we don't have a user
     if (!user) {
       console.log("No user available, clearing drafts");
       setSavedDrafts([]);
       setLoadingSavedDrafts(false);
+      setError(null);
       return;
     }
     
+    // Prevent multiple rapid fetch attempts
+    const now = Date.now();
+    if (now - lastFetchAttempt < 3000) {
+      console.log("Fetch attempt too soon after last attempt, skipping");
+      return;
+    }
+    
+    setLastFetchAttempt(now);
+    
     try {
       setLoadingSavedDrafts(true);
+      setError(null);
       
       // Convert Clerk ID to UUID format for Supabase
       const supabaseUserId = clerkToSupabaseId(user.id);
@@ -118,6 +133,8 @@ export const DraftsProvider: React.FC<{
         
       if (error) {
         console.error('Error fetching drafts:', error);
+        setError(error.message || "Failed to load your saved drafts");
+        // Don't show toast here - we'll handle UI feedback in components
         throw error;
       }
       
@@ -125,20 +142,25 @@ export const DraftsProvider: React.FC<{
       setSavedDrafts(data || []);
     } catch (error: any) {
       console.error('Error fetching drafts:', error);
-      toast.error("Failed to load your saved drafts");
+      setError(error.message || "Failed to load your saved drafts");
+      // Don't show toast here - we'll handle UI feedback in components
     } finally {
       setLoadingSavedDrafts(false);
     }
-  }, [user]);
+  }, [user, lastFetchAttempt]);
   
-  // Add useEffect to fetch drafts when user changes
+  // Add useEffect to fetch drafts when user changes, with better error handling
   useEffect(() => {
     if (user) {
       console.log('User changed, fetching drafts for user:', user.id);
-      fetchSavedDrafts();
+      fetchSavedDrafts().catch(error => {
+        console.error('Error in fetch drafts effect:', error);
+        // Error is already set in the fetchSavedDrafts function
+      });
     } else {
       console.log('No user available, clearing drafts');
       setSavedDrafts([]);
+      setError(null);
     }
   }, [fetchSavedDrafts, user]);
   
@@ -182,7 +204,8 @@ export const DraftsProvider: React.FC<{
         saveDraft,
         loadDraft,
         deleteDraft,
-        fetchSavedDrafts
+        fetchSavedDrafts,
+        error
       }}
     >
       {children}
