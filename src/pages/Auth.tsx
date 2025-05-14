@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Helmet } from "react-helmet";
-import { SignIn, SignUp, dark } from "@clerk/clerk-react";
+import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
@@ -58,7 +58,6 @@ const Auth = () => {
           <TabsContent value="login">
             <SignIn 
               appearance={{
-                baseTheme: dark,
                 elements: {
                   rootBox: "w-full",
                   card: "shadow-md rounded-lg p-8 border border-gray-200",
@@ -82,7 +81,6 @@ const Auth = () => {
           <TabsContent value="register">
             <SignUp 
               appearance={{
-                baseTheme: dark,
                 elements: {
                   rootBox: "w-full",
                   card: "shadow-md rounded-lg p-8 border border-gray-200",
