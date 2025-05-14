@@ -8,11 +8,12 @@ import {
 import { toast } from "sonner";
 import { AuthContextType } from "@/lib/auth/types";
 import { ensureProfileExists } from "@/lib/auth/clerk-helpers";
+import { updateSupabaseAuthWithClerkSession } from "@/integrations/supabase/client";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useClerkAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useClerkAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
   const clerk = useClerk();
   
@@ -25,6 +26,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Get user ID safely
   const userId = isSignedIn && user ? user.id : null;
+
+  // Effect to sync Clerk session with Supabase
+  useEffect(() => {
+    const syncAuthState = async () => {
+      if (isLoaded) {
+        if (isSignedIn && user) {
+          try {
+            // Get JWT token from Clerk
+            const token = await getToken({ template: "supabase" });
+            // Update Supabase auth with the Clerk JWT
+            await updateSupabaseAuthWithClerkSession(token);
+            console.log("Supabase auth updated with Clerk session");
+          } catch (error) {
+            console.error("Failed to sync Clerk session with Supabase:", error);
+          }
+        } else {
+          // Clear Supabase session when signed out
+          await updateSupabaseAuthWithClerkSession(null);
+          console.log("Cleared Supabase auth session");
+        }
+      }
+    };
+
+    syncAuthState();
+  }, [isLoaded, isSignedIn, user, getToken]);
 
   // Effect to handle auth state changes and force re-renders
   useEffect(() => {
