@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, BookOpen, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { clerkToSupabaseId } from "@/lib/utils";
 
 interface ProfileData {
   id: string;
@@ -16,32 +17,6 @@ interface ProfileData {
   last_name: string | null;
   avatar_url: string | null;
 }
-
-// Helper function to generate a UUID-like string from Clerk ID
-const getUserIdForSupabase = (clerkId: string): string => {
-  try {
-    // If the ID is already a valid UUID, just return it
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
-      return clerkId;
-    }
-    
-    // Create a numeric hash from the string - this avoids the shift operator
-    let hash = 0;
-    for (let i = 0; i < clerkId.length; i++) {
-      hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
-    }
-    
-    // Create a deterministic UUID using the hash
-    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
-      const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
-      return val.toString(16);
-    });
-  } catch (error) {
-    console.error('Error converting Clerk ID to UUID:', error);
-    // Fallback to a fixed UUID if conversion fails
-    return '00000000-0000-0000-0000-000000000000';
-  }
-};
 
 export default function ProfileOverview() {
   const { user, signOut } = useAuth();
@@ -63,7 +38,7 @@ export default function ProfileOverview() {
 
     const fetchProfile = async () => {
       try {
-        const supabaseUserId = getUserIdForSupabase(user.id);
+        const supabaseUserId = clerkToSupabaseId(user.id);
         console.log("Fetching profile for user ID:", user.id);
         console.log("Using Supabase user ID:", supabaseUserId);
         
@@ -74,6 +49,7 @@ export default function ProfileOverview() {
           .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
+          console.error("Error fetching profile:", error);
           throw error;
         }
         
@@ -106,6 +82,7 @@ export default function ProfileOverview() {
             
           if (createError) {
             console.error("Error creating profile:", createError);
+            toast.error("Failed to create user profile");
             throw createError;
           }
           
@@ -141,7 +118,7 @@ export default function ProfileOverview() {
     
     try {
       setUpdating(true);
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       
       // Update Supabase profile
       const { error } = await supabase
@@ -153,7 +130,10 @@ export default function ProfileOverview() {
         })
         .eq('id', supabaseUserId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating profile in Supabase:", error);
+        throw error;
+      }
       
       // Also update Clerk user metadata if available
       try {
@@ -161,6 +141,7 @@ export default function ProfileOverview() {
           firstName: formData.firstName || undefined,
           lastName: formData.lastName || undefined
         });
+        console.log("Clerk profile updated successfully");
       } catch (clerkError) {
         console.error("Failed to update Clerk profile:", clerkError);
         // Continue with the flow even if Clerk update fails
@@ -178,6 +159,7 @@ export default function ProfileOverview() {
         };
       });
     } catch (error: any) {
+      console.error("Profile update error:", error);
       toast.error(error.message || "Error updating profile");
     } finally {
       setUpdating(false);

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { CartItem } from "@/types/bookTypes";
 import { Json } from "@/integrations/supabase/types";
+import { clerkToSupabaseId } from "@/lib/utils";
 
 interface SavedCart {
   id: string;
@@ -18,33 +19,6 @@ interface SavedCart {
   created_at: string;
   updated_at: string;
 }
-
-// Helper function to generate a UUID-like string from Clerk ID
-// This is a temporary solution until we can update the database schema
-const getUserIdForSupabase = (clerkId: string): string => {
-  try {
-    // If the ID is already a valid UUID, just return it
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
-      return clerkId;
-    }
-    
-    // Create a numeric hash from the string - this avoids the shift operator
-    let hash = 0;
-    for (let i = 0; i < clerkId.length; i++) {
-      hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
-    }
-    
-    // Create a deterministic UUID using the hash
-    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
-      const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
-      return val.toString(16);
-    });
-  } catch (error) {
-    console.error('Error converting Clerk ID to UUID:', error);
-    // Fallback to a fixed UUID if conversion fails
-    return '00000000-0000-0000-0000-000000000000';
-  }
-};
 
 export default function SavedCartsSection() {
   const { user } = useAuth();
@@ -68,7 +42,7 @@ export default function SavedCartsSection() {
       }
       
       // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Fetching saved carts for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
@@ -78,7 +52,10 @@ export default function SavedCartsSection() {
         .eq('user_id', supabaseUserId)
         .order('updated_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        toast.error("Failed to load your saved carts");
+        throw error;
+      }
       
       // Type conversion - ensure items are properly typed as CartItem[]
       const typedCarts: SavedCart[] = data?.map(cart => ({
@@ -87,9 +64,10 @@ export default function SavedCartsSection() {
         items: Array.isArray(cart.items) ? (cart.items as any) as CartItem[] : []
       })) || [];
       
+      console.log(`Found ${typedCarts.length} saved carts`);
       setSavedCarts(typedCarts);
     } catch (error: any) {
-      toast.error(error.message || "Error fetching saved carts");
+      console.error("Error fetching saved carts:", error);
     } finally {
       setLoading(false);
     }
@@ -108,7 +86,7 @@ export default function SavedCartsSection() {
     try {
       if (!user) return;
       
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       
       const { error } = await supabase
         .from('saved_carts')
@@ -121,6 +99,7 @@ export default function SavedCartsSection() {
       setSavedCarts(savedCarts.filter(cart => cart.id !== cartId));
       toast.success("Saved cart deleted successfully");
     } catch (error: any) {
+      console.error("Error deleting saved cart:", error);
       toast.error(error.message || "Error deleting saved cart");
     }
   };

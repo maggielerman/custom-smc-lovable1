@@ -5,6 +5,7 @@ import { CartItem } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { clerkToSupabaseId } from "@/lib/utils";
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -15,32 +16,6 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
 }
-
-// Helper function to generate a UUID-like string from Clerk ID
-const getUserIdForSupabase = (clerkId: string): string => {
-  try {
-    // If the ID is already a valid UUID, just return it
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
-      return clerkId;
-    }
-    
-    // Create a numeric hash from the string - this avoids the shift operator
-    let hash = 0;
-    for (let i = 0; i < clerkId.length; i++) {
-      hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
-    }
-    
-    // Create a deterministic UUID using the hash
-    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
-      const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
-      return val.toString(16);
-    });
-  } catch (error) {
-    console.error('Error converting Clerk ID to UUID:', error);
-    // Fallback to a fixed UUID if conversion fails
-    return '00000000-0000-0000-0000-000000000000';
-  }
-};
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -60,7 +35,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Loading cart for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
@@ -71,7 +46,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('updated_at', { ascending: false })
         .limit(1);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading cart:', error);
+        toast.error("Failed to load your cart");
+        return;
+      }
       
       if (data && data.length > 0) {
         // Load the most recent cart and ensure items are properly typed
@@ -81,6 +60,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const items = (cartData.items as any) as CartItem[];
           if (items.length > 0) {
             setCartItems(items);
+            console.log(`Loaded ${items.length} items from saved cart`);
           }
         }
       }
@@ -94,18 +74,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       const totalAmount = items.reduce((total, item) => total + item.price, 0);
       
       // Check if user has a saved cart
-      const { data: existingCarts } = await supabase
+      const { data: existingCarts, error: fetchError } = await supabase
         .from('saved_carts')
         .select('id')
         .eq('user_id', supabaseUserId);
         
+      if (fetchError) {
+        console.error('Error fetching existing carts:', fetchError);
+        return;
+      }
+        
       if (existingCarts && existingCarts.length > 0) {
         // Update existing cart
-        await supabase
+        const { error: updateError } = await supabase
           .from('saved_carts')
           .update({
             items: items as unknown as Json,
@@ -113,15 +98,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updated_at: new Date().toISOString()
           })
           .eq('id', existingCarts[0].id);
+          
+        if (updateError) {
+          console.error('Error updating cart:', updateError);
+          return;
+        }
+        
+        console.log('Cart updated successfully');
       } else if (items.length > 0) {
         // Create new cart if there are items
-        await supabase
+        const { error: createError } = await supabase
           .from('saved_carts')
           .insert({
             user_id: supabaseUserId,
             items: items as unknown as Json,
             total_amount: totalAmount
           });
+          
+        if (createError) {
+          console.error('Error creating cart:', createError);
+          return;
+        }
+        
+        console.log('New cart created successfully');
       }
     } catch (error) {
       console.error('Error saving cart:', error);
@@ -141,10 +140,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       const totalAmount = cartItems.reduce((total, item) => total + item.price, 0);
       
-      await supabase
+      const { error } = await supabase
         .from('saved_carts')
         .insert({
           user_id: supabaseUserId,
@@ -152,6 +151,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           items: cartItems as unknown as Json,
           total_amount: totalAmount
         });
+        
+      if (error) {
+        console.error('Error saving cart with name:', error);
+        throw error;
+      }
         
       toast.success("Cart saved successfully");
     } catch (error: any) {

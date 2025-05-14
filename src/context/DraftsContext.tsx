@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import { clerkToSupabaseId } from "@/lib/utils";
 
 interface DraftsContextProps {
   savedDrafts: SavedDraft[];
@@ -36,33 +37,6 @@ export const DraftsProvider: React.FC<{
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
   const { user } = useAuth();
 
-  // Helper function to generate a UUID-like string from Clerk ID
-  // This is a temporary solution until we can update the database schema
-  const getUserIdForSupabase = (clerkId: string): string => {
-    try {
-      // If the ID is already a valid UUID, just return it
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clerkId)) {
-        return clerkId;
-      }
-      
-      // Create a numeric hash from the string - this avoids the shift operator
-      let hash = 0;
-      for (let i = 0; i < clerkId.length; i++) {
-        hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
-      }
-      
-      // Create a deterministic UUID using the hash
-      return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
-        const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
-        return val.toString(16);
-      });
-    } catch (error) {
-      console.error('Error converting Clerk ID to UUID:', error);
-      // Fallback to a fixed UUID if conversion fails
-      return '00000000-0000-0000-0000-000000000000';
-    }
-  };
-
   // Save book draft to Supabase
   const saveDraft = async (
     title: string | undefined,
@@ -86,10 +60,10 @@ export const DraftsProvider: React.FC<{
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
       // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Saving draft with user ID:', supabaseUserId);
       
-      await supabase
+      const { error } = await supabase
         .from('saved_drafts')
         .insert({
           user_id: supabaseUserId,
@@ -103,6 +77,10 @@ export const DraftsProvider: React.FC<{
           used_donor_embryo: bookData.usedDonorEmbryo,
           used_surrogate: bookData.usedSurrogate
         });
+        
+      if (error) {
+        throw error;
+      }
         
       toast.success("Draft saved successfully");
       
@@ -127,7 +105,7 @@ export const DraftsProvider: React.FC<{
       setLoadingSavedDrafts(true);
       
       // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Fetching drafts for user ID:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
@@ -176,7 +154,7 @@ export const DraftsProvider: React.FC<{
     if (!user) return;
     
     try {
-      const supabaseUserId = getUserIdForSupabase(user.id);
+      const supabaseUserId = clerkToSupabaseId(user.id);
       
       const { error } = await supabase
         .from('saved_drafts')
