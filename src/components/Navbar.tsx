@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut } from 'lucide-react';
@@ -5,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import Cart from './cart/Cart';
 import { useAuth } from '@/context/AuthContext';
+import { UserButton } from '@clerk/clerk-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -63,34 +65,25 @@ const Navbar: React.FC = () => {
             
             {/* Auth buttons */}
             {isLoaded && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <User size={18} />
-                    <span>Account</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    My Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile/drafts")}>
-                    My Drafts
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile/saved-carts")}>
-                    Saved Carts
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center">
+                <UserButton 
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "w-8 h-8",
+                      userButtonTrigger: "focus:outline-none focus:ring-2 focus:ring-book-red/30 rounded-full",
+                      userButtonPopoverCard: "shadow-lg border border-gray-100 rounded-lg",
+                      userButtonPopoverActionButton: "hover:bg-gray-50",
+                      userButtonPopoverActionButtonIcon: "text-gray-500",
+                      userButtonPopoverActionButtonText: "text-gray-700",
+                      userPreviewMainIdentifier: "text-gray-900",
+                      userPreviewSecondaryIdentifier: "text-gray-500",
+                    }
+                  }}
+                  userProfileMode="navigation"
+                  userProfileUrl="/profile"
+                />
+              </div>
             ) : (
               <Button 
                 onClick={() => navigate("/auth")}
