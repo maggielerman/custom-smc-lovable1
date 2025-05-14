@@ -57,14 +57,19 @@ const Auth = () => {
           </TabsList>
           
           <TabsContent value="login">
-            <Card className="p-0 overflow-hidden">
+            <Card className="p-6 overflow-hidden">
               <SignIn 
                 appearance={{
                   elements: {
                     rootBox: "w-full",
-                    card: "shadow-none p-0",
+                    card: "shadow-none p-0 border-0",
                     formButtonPrimary: "bg-book-red hover:bg-red-700",
-                    footerActionLink: "text-book-red hover:text-red-700"
+                    footerActionLink: "text-book-red hover:text-red-700",
+                    formFieldInput: "rounded-md border border-input bg-background",
+                    formFieldLabel: "text-sm font-medium",
+                    formHeaderTitle: "text-xl font-semibold",
+                    formHeaderSubtitle: "text-sm text-muted-foreground",
+                    socialButtonsBlockButton: "border border-gray-300 bg-white hover:bg-gray-50"
                   }
                 }}
                 routing="path"
@@ -76,14 +81,19 @@ const Auth = () => {
           </TabsContent>
           
           <TabsContent value="register">
-            <Card className="p-0 overflow-hidden">
+            <Card className="p-6 overflow-hidden">
               <SignUp 
                 appearance={{
                   elements: {
                     rootBox: "w-full",
-                    card: "shadow-none p-0",
+                    card: "shadow-none p-0 border-0",
                     formButtonPrimary: "bg-book-red hover:bg-red-700",
-                    footerActionLink: "text-book-red hover:text-red-700"
+                    footerActionLink: "text-book-red hover:text-red-700",
+                    formFieldInput: "rounded-md border border-input bg-background",
+                    formFieldLabel: "text-sm font-medium",
+                    formHeaderTitle: "text-xl font-semibold",
+                    formHeaderSubtitle: "text-sm text-muted-foreground",
+                    socialButtonsBlockButton: "border border-gray-300 bg-white hover:bg-gray-50"
                   }
                 }}
                 routing="path"
