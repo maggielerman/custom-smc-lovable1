@@ -21,6 +21,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loadingCart, setLoadingCart] = useState(false);
+  const [cartErrorShown, setCartErrorShown] = useState(false);
   const { user, userId } = useAuth();
 
   // Load cart from Supabase when user signs in
@@ -35,6 +37,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      setLoadingCart(true);
+      setCartErrorShown(false);
+      
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Loading cart for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
@@ -48,7 +53,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) {
         console.error('Error loading cart:', error);
-        toast.error("Failed to load your cart");
+        if (!cartErrorShown) {
+          toast.error("Failed to load your cart");
+          setCartErrorShown(true);
+        }
         return;
       }
       
@@ -66,6 +74,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error loading cart:', error);
+      if (!cartErrorShown) {
+        toast.error("Failed to load your cart");
+        setCartErrorShown(true);
+      }
+    } finally {
+      setLoadingCart(false);
     }
   };
 
