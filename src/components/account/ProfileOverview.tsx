@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,14 +25,17 @@ const getUserIdForSupabase = (clerkId: string): string => {
       return clerkId;
     }
     
-    // Otherwise create a deterministic UUID from the Clerk ID
-    const hash = Array.from(clerkId).reduce(
-      (acc, char) => ((acc << 5) - acc) + char.charCodeAt(0), 0
-    );
+    // Create a numeric hash from the string - this avoids the shift operator
+    let hash = 0;
+    for (let i = 0; i < clerkId.length; i++) {
+      hash = ((hash * 31) + clerkId.charCodeAt(i)) & 0xffffffff;
+    }
     
-    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => 
-      ((Number(c) ^ (hash & 15)) >> c / 4).toString(16)
-    );
+    // Create a deterministic UUID using the hash
+    return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => {
+      const val = (hash ^ (parseInt(c, 10) & 15)) % 16;
+      return val.toString(16);
+    });
   } catch (error) {
     console.error('Error converting Clerk ID to UUID:', error);
     // Fallback to a fixed UUID if conversion fails
