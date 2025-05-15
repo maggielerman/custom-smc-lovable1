@@ -88,6 +88,8 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
 
       try {
         const supabaseUserId = clerkToSupabaseId(userId);
+        console.log("Loading family data for user:", userId);
+        console.log("Supabase user ID:", supabaseUserId);
         
         // Load family members
         const { data: membersData, error: membersError } = await supabase
@@ -98,6 +100,7 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
         if (membersError) {
           console.error("Error loading family members:", membersError);
         } else {
+          console.log("Loaded family members:", membersData);
           setFamilyMembers(membersData || []);
         }
         
@@ -113,6 +116,7 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
             console.error("Error loading family story:", storyError);
           }
         } else if (storyData) {
+          console.log("Loaded family story:", storyData);
           setFamilyStory(storyData.story);
         }
       } catch (error) {
