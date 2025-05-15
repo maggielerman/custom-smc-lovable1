@@ -244,7 +244,7 @@ export type Database = {
         Returns: boolean
       }
       is_current_clerk_user: {
-        Args: { profile_id: string }
+        Args: Record<PropertyKey, never> | { profile_id: string }
         Returns: boolean
       }
     }
