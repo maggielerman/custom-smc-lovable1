@@ -11,20 +11,47 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: false, // Don't persist session as we're using Clerk for auth
-    autoRefreshToken: false // Don't auto-refresh token as we're using Clerk for auth
+    persistSession: true, // Enable session persistence for better reliability
+    autoRefreshToken: true, // Automatically refresh tokens when needed
+    detectSessionInUrl: false, // Disable detecting session in URL as we're using Clerk
+    storage: localStorage // Use localStorage for Supabase session
   }
 });
 
 // When user is authenticated with Clerk, set their JWT as the supabase token
 export const updateSupabaseAuthWithClerkSession = async (clerkToken: string | null) => {
-  if (clerkToken) {
-    // Set the Clerk JWT as the Supabase auth token
-    supabase.auth.setSession({ access_token: clerkToken, refresh_token: '' });
-    return true;
-  } else {
-    // Clear the session if no token is provided
-    supabase.auth.setSession({ access_token: '', refresh_token: '' });
+  console.log("Updating Supabase auth with Clerk token:", clerkToken ? "Token provided" : "No token");
+  
+  try {
+    if (clerkToken) {
+      // Set the Clerk JWT as the Supabase auth token
+      const { data, error } = await supabase.auth.setSession({ 
+        access_token: clerkToken, 
+        refresh_token: '' 
+      });
+      
+      if (error) {
+        console.error("Error setting Supabase session:", error);
+        return false;
+      }
+      
+      console.log("Supabase session updated successfully:", data);
+      return true;
+    } else {
+      // Clear the session if no token is provided
+      const { error } = await supabase.auth.setSession({ 
+        access_token: '', 
+        refresh_token: '' 
+      });
+      
+      if (error) {
+        console.error("Error clearing Supabase session:", error);
+      }
+      
+      return false;
+    }
+  } catch (error) {
+    console.error("Exception updating Supabase auth:", error);
     return false;
   }
 };

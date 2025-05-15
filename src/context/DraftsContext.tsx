@@ -38,7 +38,7 @@ export const DraftsProvider: React.FC<{
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
 
   // Save book draft to Supabase
   const saveDraft = async (
@@ -66,6 +66,18 @@ export const DraftsProvider: React.FC<{
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Saving draft with user ID:', supabaseUserId);
       
+      // Ensure we have a valid JWT token for RLS policies
+      const token = await getToken({ template: "supabase" });
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+      
+      // Make sure Supabase client has the token
+      supabase.auth.setSession({
+        access_token: token,
+        refresh_token: ""
+      });
+      
       const { error } = await supabase
         .from('saved_drafts')
         .insert({
@@ -82,6 +94,7 @@ export const DraftsProvider: React.FC<{
         });
         
       if (error) {
+        console.error("Error details:", error);
         throw error;
       }
         
@@ -124,6 +137,18 @@ export const DraftsProvider: React.FC<{
       console.log('Fetching drafts for user ID:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
+      // Ensure we have a valid JWT token for RLS policies
+      const token = await getToken({ template: "supabase" });
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+      
+      // Make sure Supabase client has the token
+      supabase.auth.setSession({
+        access_token: token,
+        refresh_token: ""
+      });
+      
       // Use UUID filtering for Supabase
       const { data, error } = await supabase
         .from('saved_drafts')
@@ -134,7 +159,6 @@ export const DraftsProvider: React.FC<{
       if (error) {
         console.error('Error fetching drafts:', error);
         setError(error.message || "Failed to load your saved drafts");
-        // Don't show toast here - we'll handle UI feedback in components
         throw error;
       }
       
@@ -143,19 +167,17 @@ export const DraftsProvider: React.FC<{
     } catch (error: any) {
       console.error('Error fetching drafts:', error);
       setError(error.message || "Failed to load your saved drafts");
-      // Don't show toast here - we'll handle UI feedback in components
     } finally {
       setLoadingSavedDrafts(false);
     }
-  }, [user, lastFetchAttempt]);
+  }, [user, lastFetchAttempt, getToken]);
   
-  // Add useEffect to fetch drafts when user changes, with better error handling
+  // Add useEffect to fetch drafts when user changes
   useEffect(() => {
     if (user) {
       console.log('User changed, fetching drafts for user:', user.id);
       fetchSavedDrafts().catch(error => {
         console.error('Error in fetch drafts effect:', error);
-        // Error is already set in the fetchSavedDrafts function
       });
     } else {
       console.log('No user available, clearing drafts');
@@ -177,6 +199,18 @@ export const DraftsProvider: React.FC<{
     
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
+      
+      // Ensure we have a valid JWT token for RLS policies
+      const token = await getToken({ template: "supabase" });
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+      
+      // Make sure Supabase client has the token
+      supabase.auth.setSession({
+        access_token: token,
+        refresh_token: ""
+      });
       
       const { error } = await supabase
         .from('saved_drafts')

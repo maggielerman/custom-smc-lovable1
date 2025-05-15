@@ -26,7 +26,9 @@ export function clerkToSupabaseId(clerkId: string): string {
   
   // Generate a deterministic v5 UUID based on the Clerk ID and our namespace
   try {
-    const uuid = uuidv5(clerkId, CLERK_NAMESPACE);
+    // Remove any non-alphanumeric characters to ensure consistent input
+    const normalizedId = clerkId.replace(/[^a-zA-Z0-9]/g, '');
+    const uuid = uuidv5(normalizedId, CLERK_NAMESPACE);
     console.log(`Converted Clerk ID ${clerkId} to Supabase UUID ${uuid}`);
     return uuid;
   } catch (error) {

@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error("Failed to ensure profile exists:", err);
               toast.error("There was a problem with your profile. Please try logging out and back in.");
             });
-        }, 1000); // Increased delay to 1000ms for better reliability
+        }, 1000); // Increased delay for better reliability
       }
     }
   }, [isLoaded, isSignedIn, user]);
@@ -81,6 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userId: userId,
     loading,
     isLoaded,
+    // Pass the getToken method from Clerk's useAuth hook
+    getToken,
     signUp: async () => {
       toast.error("Please use the sign up form");
     },

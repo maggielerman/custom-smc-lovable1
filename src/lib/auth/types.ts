@@ -1,12 +1,13 @@
 
 export interface AuthContextType {
-  session: any | null;
+  session: { user: any } | null;
   user: any | null;
   userId: string | null;
   loading: boolean;
   isLoaded: boolean;
-  signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  getToken: (options?: { template?: string }) => Promise<string | null>;
+  signUp: () => Promise<void>;
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
 }
