@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Users, Plus, X } from "lucide-react";
+import { clerkToSupabaseId } from "@/lib/utils";
 
 interface FamilyMember {
   id: string;
@@ -18,13 +19,14 @@ interface FamilyMember {
 }
 
 export default function FamilyDetails() {
-  const { user } = useAuth();
+  const { user, userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadingStory, setLoadingStory] = useState(true);
+  const [savingStory, setSavingStory] = useState(false);
   
-  // This is a placeholder for family data
-  // In a real implementation, we'd store this in a family_members table
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyStory, setFamilyStory] = useState("");
   
   const [newMember, setNewMember] = useState({
     name: "",
@@ -32,15 +34,78 @@ export default function FamilyDetails() {
     birthdate: "",
   });
 
+  // Convert Clerk userId to Supabase compatible UUID
+  const getSupabaseUserId = () => {
+    if (!userId) return null;
+    return clerkToSupabaseId(userId);
+  };
+
+  // Load family members from database
   useEffect(() => {
-    // This is where we'd fetch family members from the database
-    // For now, just simulate loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    async function loadFamilyMembers() {
+      if (!userId) return;
+
+      try {
+        setLoading(true);
+        const supabaseUserId = getSupabaseUserId();
+        
+        const { data, error } = await supabase
+          .from('family_members')
+          .select('*')
+          .eq('user_id', supabaseUserId);
+
+        if (error) {
+          console.error("Error loading family members:", error);
+          toast.error("Failed to load family members");
+        } else {
+          console.log("Loaded family members:", data);
+          setFamilyMembers(data || []);
+        }
+      } catch (error) {
+        console.error("Exception loading family members:", error);
+        toast.error("An error occurred while loading family members");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFamilyMembers();
+  }, [userId]);
+
+  // Load family story from database
+  useEffect(() => {
+    async function loadFamilyStory() {
+      if (!userId) return;
+
+      try {
+        setLoadingStory(true);
+        const supabaseUserId = getSupabaseUserId();
+        
+        const { data, error } = await supabase
+          .from('family_stories')
+          .select('story')
+          .eq('user_id', supabaseUserId)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') { // Not found error
+            console.error("Error loading family story:", error);
+            toast.error("Failed to load family story");
+          }
+        } else if (data) {
+          console.log("Loaded family story:", data);
+          setFamilyStory(data.story);
+        }
+      } catch (error) {
+        console.error("Exception loading family story:", error);
+        toast.error("An error occurred while loading family story");
+      } finally {
+        setLoadingStory(false);
+      }
+    }
+
+    loadFamilyStory();
+  }, [userId]);
 
   const handleNewMemberChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setNewMember({
@@ -49,38 +114,152 @@ export default function FamilyDetails() {
     });
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
+    if (!userId) {
+      toast.error("Please log in to add family members");
+      return;
+    }
+
     if (!newMember.name || !newMember.relationship) {
       toast.error("Please provide at least a name and relationship");
       return;
     }
     
-    const member: FamilyMember = {
-      id: crypto.randomUUID(),
-      name: newMember.name,
-      relationship: newMember.relationship,
-    };
-    
-    if (newMember.birthdate) {
-      member.birthdate = newMember.birthdate;
+    try {
+      setSaving(true);
+      const supabaseUserId = getSupabaseUserId();
+      
+      const newMemberData = {
+        user_id: supabaseUserId,
+        name: newMember.name,
+        relationship: newMember.relationship,
+        birthdate: newMember.birthdate || null
+      };
+      
+      const { data, error } = await supabase
+        .from('family_members')
+        .insert(newMemberData)
+        .select();
+
+      if (error) {
+        console.error("Error saving family member:", error);
+        toast.error("Failed to save family member");
+        return;
+      }
+
+      console.log("Added family member:", data);
+      
+      // Add the new member to the local state with the returned ID
+      const savedMember = data[0];
+      setFamilyMembers([...familyMembers, savedMember]);
+      
+      // Reset the form
+      setNewMember({
+        name: "",
+        relationship: "",
+        birthdate: "",
+      });
+      
+      toast.success("Family member added");
+    } catch (error) {
+      console.error("Exception adding family member:", error);
+      toast.error("An error occurred while adding family member");
+    } finally {
+      setSaving(false);
     }
-    
-    setFamilyMembers([...familyMembers, member]);
-    setNewMember({
-      name: "",
-      relationship: "",
-      birthdate: "",
-    });
-    
-    toast.success("Family member added");
   };
   
-  const handleRemoveMember = (id: string) => {
-    setFamilyMembers(familyMembers.filter(member => member.id !== id));
-    toast.success("Family member removed");
+  const handleRemoveMember = async (id: string) => {
+    if (!userId) {
+      toast.error("Please log in to remove family members");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error("Error removing family member:", error);
+        toast.error("Failed to remove family member");
+        return;
+      }
+
+      // Update local state
+      setFamilyMembers(familyMembers.filter(member => member.id !== id));
+      toast.success("Family member removed");
+    } catch (error) {
+      console.error("Exception removing family member:", error);
+      toast.error("An error occurred while removing family member");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if (loading) {
+  const handleSaveFamilyStory = async () => {
+    if (!userId) {
+      toast.error("Please log in to save your family story");
+      return;
+    }
+
+    if (!familyStory.trim()) {
+      toast.error("Please enter your family story");
+      return;
+    }
+
+    try {
+      setSavingStory(true);
+      const supabaseUserId = getSupabaseUserId();
+      
+      // First check if a story already exists
+      const { data: existingStory } = await supabase
+        .from('family_stories')
+        .select('id')
+        .eq('user_id', supabaseUserId)
+        .single();
+        
+      let result;
+      
+      if (existingStory) {
+        // Update existing story
+        result = await supabase
+          .from('family_stories')
+          .update({ story: familyStory, updated_at: new Date().toISOString() })
+          .eq('user_id', supabaseUserId);
+      } else {
+        // Insert new story
+        result = await supabase
+          .from('family_stories')
+          .insert({
+            user_id: supabaseUserId,
+            story: familyStory
+          });
+      }
+      
+      if (result.error) {
+        console.error("Error saving family story:", result.error);
+        toast.error("Failed to save family story");
+        return;
+      }
+      
+      toast.success("Family story saved");
+    } catch (error) {
+      console.error("Exception saving family story:", error);
+      toast.error("An error occurred while saving family story");
+    } finally {
+      setSavingStory(false);
+    }
+  };
+
+  const handleFamilyStoryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFamilyStory(e.target.value);
+  };
+
+  if (loading && loadingStory) {
     return (
       <div className="flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin text-book-red" />
@@ -123,6 +302,7 @@ export default function FamilyDetails() {
                     variant="ghost" 
                     size="sm"
                     onClick={() => handleRemoveMember(member.id)}
+                    disabled={saving}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -170,8 +350,18 @@ export default function FamilyDetails() {
                 type="button" 
                 onClick={handleAddMember}
                 className="bg-book-red hover:bg-red-700 text-white"
+                disabled={saving}
               >
-                <Plus className="h-4 w-4 mr-2" /> Add Family Member
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" /> Add Family Member
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -193,6 +383,8 @@ export default function FamilyDetails() {
                 id="familyStory"
                 placeholder="Share your family's journey, how it was formed, and what makes it special..."
                 rows={5}
+                value={familyStory}
+                onChange={handleFamilyStoryChange}
               />
               <p className="text-sm text-muted-foreground">
                 This information helps us personalize your book creation experience
@@ -203,9 +395,10 @@ export default function FamilyDetails() {
         <CardFooter>
           <Button 
             className="bg-book-red hover:bg-red-700 text-white"
-            disabled={saving}
+            disabled={savingStory}
+            onClick={handleSaveFamilyStory}
           >
-            {saving ? (
+            {savingStory ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
                 Saving...

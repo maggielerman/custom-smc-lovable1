@@ -105,6 +105,60 @@ export type Database = {
           },
         ]
       }
+      family_members: {
+        Row: {
+          birthdate: string | null
+          created_at: string
+          id: string
+          name: string
+          relationship: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birthdate?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          relationship: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birthdate?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          relationship?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      family_stories: {
+        Row: {
+          created_at: string
+          id: string
+          story: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
