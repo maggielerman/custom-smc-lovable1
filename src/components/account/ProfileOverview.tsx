@@ -12,12 +12,15 @@ import { useNavigate } from "react-router-dom";
 import { clerkToSupabaseId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClerkUserProfile from "./ClerkUserProfile";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface ProfileData {
   id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  email: string | null;
+  clerk_id: string | null;
 }
 
 export default function ProfileOverview() {
@@ -70,6 +73,9 @@ export default function ProfileOverview() {
           console.log("No profile found, creating new profile");
           const firstName = user.firstName || "";
           const lastName = user.lastName || "";
+          const primaryEmail = user.emailAddresses?.find((email: any) => 
+            email.id === user.primaryEmailAddressId
+          )?.emailAddress || user.email || null;
           
           // Create new profile in Supabase
           const { data: newProfile, error: createError } = await supabase
@@ -78,6 +84,8 @@ export default function ProfileOverview() {
               id: supabaseUserId,
               first_name: firstName,
               last_name: lastName,
+              email: primaryEmail,
+              clerk_id: user.id,
               updated_at: new Date().toISOString()
             })
             .select()
@@ -187,11 +195,19 @@ export default function ProfileOverview() {
         
         <TabsContent value="basic">
           <Card>
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-              <CardDescription>
-                Manage your account information
-              </CardDescription>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Your Profile</CardTitle>
+                <CardDescription>
+                  Manage your account information
+                </CardDescription>
+              </div>
+              {profileData?.avatar_url && (
+                <Avatar className="h-16 w-16 border-2 border-gray-200">
+                  <AvatarImage src={profileData.avatar_url} alt="Profile" />
+                  <AvatarFallback>{profileData.first_name?.[0]}{profileData.last_name?.[0]}</AvatarFallback>
+                </Avatar>
+              )}
             </CardHeader>
             <form onSubmit={handleUpdateProfile}>
               <CardContent className="space-y-4">
@@ -199,7 +215,7 @@ export default function ProfileOverview() {
                   <Label htmlFor="email">Email</Label>
                   <Input 
                     id="email"
-                    value={user?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
+                    value={profileData?.email || user?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
                     disabled
                     className="bg-gray-50"
                   />
