@@ -17,17 +17,23 @@ export const ensureProfileExists = async (user: any) => {
     const clerkId = user.id;
     const supabaseId = clerkToSupabaseId(clerkId);
     
+    // Get primary email address from the user object
+    const primaryEmail = user.emailAddresses?.find((email: any) => 
+      email.id === user.primaryEmailAddressId
+    )?.emailAddress || user.email || null;
+    
     console.log("Ensuring profile exists:", { 
       clerkId, 
       supabaseId,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      email: primaryEmail
     });
     
     // First check if profile exists
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, updated_at')
+      .select('id, first_name, last_name, avatar_url, email, clerk_id, updated_at')
       .eq('id', supabaseId)
       .maybeSingle();
       
@@ -50,6 +56,8 @@ export const ensureProfileExists = async (user: any) => {
           first_name: firstName,
           last_name: lastName,
           avatar_url: avatarUrl,
+          email: primaryEmail,
+          clerk_id: clerkId,
           updated_at: new Date().toISOString()
         });
         
@@ -65,11 +73,13 @@ export const ensureProfileExists = async (user: any) => {
     else if (
       data.first_name !== firstName || 
       data.last_name !== lastName || 
-      data.avatar_url !== avatarUrl
+      data.avatar_url !== avatarUrl ||
+      data.email !== primaryEmail ||
+      data.clerk_id !== clerkId
     ) {
       console.log("Synchronizing profile data:", { 
         current: data,
-        new: { firstName, lastName, avatarUrl }
+        new: { firstName, lastName, avatarUrl, email: primaryEmail, clerkId }
       });
       
       const { error: updateError } = await supabase
@@ -78,6 +88,8 @@ export const ensureProfileExists = async (user: any) => {
           first_name: firstName,
           last_name: lastName,
           avatar_url: avatarUrl,
+          email: primaryEmail,
+          clerk_id: clerkId,
           updated_at: new Date().toISOString()
         })
         .eq('id', supabaseId);
