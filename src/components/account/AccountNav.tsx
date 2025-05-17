@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { User, BookOpen, FileText, ShoppingCart, Users, Settings } from "lucide-react";
+import { User, BookOpen, FileText, Users, Settings } from "lucide-react";
 
 const navItems = [
   { 
@@ -11,14 +11,14 @@ const navItems = [
     icon: <User className="h-4 w-4 mr-2" /> 
   },
   { 
+    label: "My Books", 
+    href: "/profile/books", 
+    icon: <BookOpen className="h-4 w-4 mr-2" /> 
+  },
+  { 
     label: "My Drafts", 
     href: "/profile/drafts", 
     icon: <FileText className="h-4 w-4 mr-2" /> 
-  },
-  { 
-    label: "Saved Carts", 
-    href: "/profile/saved-carts", 
-    icon: <ShoppingCart className="h-4 w-4 mr-2" /> 
   },
   { 
     label: "Family Details", 
@@ -39,10 +39,7 @@ export default function AccountNav() {
   return (
     <nav className="space-y-1">
       {navItems.map((item) => {
-        // Check if current path matches navigation item exactly
-        // or if we're on the overview page and the path is just "/profile"
         const isActive = pathname === item.href;
-        
         return (
           <Link
             key={item.href}

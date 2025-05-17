@@ -1,16 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { ConceptionType, FamilyStructure } from "@/types/bookTypes";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
-import { clerkToSupabaseId } from "@/lib/utils";
-
-interface FamilyMember {
-  id: string;
-  name: string;
-  relationship: string;
-  birthdate?: string;
-}
 
 interface BookCustomizationContextType {
   // Book details
@@ -33,10 +23,6 @@ interface BookCustomizationContextType {
   usedSurrogate: boolean;
   setUsedSurrogate: (used: boolean) => void;
   
-  // Family members
-  familyMembers: FamilyMember[];
-  familyStory: string;
-  
   // Preview state
   isPreviewOpen: boolean;
   openPreview: () => void;
@@ -51,8 +37,6 @@ interface BookCustomizationContextType {
 const BookCustomizationContext = createContext<BookCustomizationContextType | undefined>(undefined);
 
 export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userId } = useAuth();
-  
   // Book details state
   const [conceptionType, setConceptionType] = useState<ConceptionType>('ivf');
   const [familyStructure, setFamilyStructure] = useState<FamilyStructure>('hetero-couple');
@@ -65,10 +49,6 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
   const [usedDonorEmbryo, setUsedDonorEmbryo] = useState(false);
   const [usedSurrogate, setUsedSurrogate] = useState(false);
   
-  // Family members and story
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [familyStory, setFamilyStory] = useState("");
-  
   // Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
@@ -80,52 +60,6 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
   
   const openCheckout = () => setIsCheckoutOpen(true);
   const closeCheckout = () => setIsCheckoutOpen(false);
-
-  // Load family members and story when the user ID changes
-  useEffect(() => {
-    async function loadFamilyData() {
-      if (!userId) return;
-
-      try {
-        const supabaseUserId = clerkToSupabaseId(userId);
-        console.log("Loading family data for user:", userId);
-        console.log("Supabase user ID:", supabaseUserId);
-        
-        // Load family members
-        const { data: membersData, error: membersError } = await supabase
-          .from('family_members')
-          .select('*')
-          .eq('user_id', supabaseUserId);
-
-        if (membersError) {
-          console.error("Error loading family members:", membersError);
-        } else {
-          console.log("Loaded family members:", membersData);
-          setFamilyMembers(membersData || []);
-        }
-        
-        // Load family story
-        const { data: storyData, error: storyError } = await supabase
-          .from('family_stories')
-          .select('story')
-          .eq('user_id', supabaseUserId)
-          .single();
-
-        if (storyError) {
-          if (storyError.code !== 'PGRST116') { // Not found error
-            console.error("Error loading family story:", storyError);
-          }
-        } else if (storyData) {
-          console.log("Loaded family story:", storyData);
-          setFamilyStory(storyData.story);
-        }
-      } catch (error) {
-        console.error("Exception loading family data:", error);
-      }
-    }
-
-    loadFamilyData();
-  }, [userId]);
 
   return (
     <BookCustomizationContext.Provider
@@ -146,8 +80,6 @@ export const BookCustomizationProvider: React.FC<{ children: React.ReactNode }> 
         setUsedDonorEmbryo,
         usedSurrogate,
         setUsedSurrogate,
-        familyMembers,
-        familyStory,
         isPreviewOpen,
         openPreview,
         closePreview,

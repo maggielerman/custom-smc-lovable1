@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useNavigate, Link } from "react-router-dom";
 import { Loader2, AlertTriangle, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ export default function AccountSettings() {
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
   
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -32,6 +34,32 @@ export default function AccountSettings() {
     activityUpdates: true,
     darkMode: false,
   });
+
+  useEffect(() => {
+    // Check if MFA is enabled for the user
+    if (user) {
+      checkMfaStatus();
+    }
+  }, [user]);
+
+  const checkMfaStatus = async () => {
+    try {
+      setMfaLoading(true);
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      
+      if (error) throw error;
+      
+      const hasMfa = data.totp.some(factor => 
+        factor.factor_type === 'totp' && factor.status === 'verified'
+      );
+      
+      setMfaEnabled(hasMfa);
+    } catch (error) {
+      console.error("Error checking MFA status:", error);
+    } finally {
+      setMfaLoading(false);
+    }
+  };
 
   const handlePreferenceChange = (key: keyof typeof preferences) => {
     setPreferences(prev => ({
@@ -87,13 +115,22 @@ export default function AccountSettings() {
                 </p>
               </div>
               
-              <div className="flex items-center">
+              {mfaLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : mfaEnabled ? (
+                <div className="flex items-center">
+                  <span className="text-sm text-green-600 mr-2">Enabled</span>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/mfa-setup">Manage</Link>
+                  </Button>
+                </div>
+              ) : (
                 <Button variant="outline" size="sm" asChild>
-                  <a href="https://clerk.com/docs/authentication/configuration/multi-factor-authentication" target="_blank" rel="noopener noreferrer">
-                    <ShieldCheck className="h-4 w-4 mr-1" /> Set up MFA
-                  </a>
+                  <Link to="/mfa-setup">
+                    <ShieldCheck className="h-4 w-4 mr-1" /> Enable MFA
+                  </Link>
                 </Button>
-              </div>
+              )}
             </div>
             
             <div className="flex items-center justify-between">

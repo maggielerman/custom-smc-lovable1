@@ -9,8 +9,6 @@ import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { CartItem } from "@/types/bookTypes";
 import { Json } from "@/integrations/supabase/types";
-import { clerkToSupabaseId } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SavedCart {
   id: string;
@@ -26,8 +24,6 @@ export default function SavedCartsSection() {
   const { addToCart } = useCart();
   const [savedCarts, setSavedCarts] = useState<SavedCart[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errorShown, setErrorShown] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -38,34 +34,14 @@ export default function SavedCartsSection() {
   const fetchSavedCarts = async () => {
     try {
       setLoading(true);
-      setError(null);
-      setErrorShown(false);
-      
-      if (!user) {
-        setSavedCarts([]);
-        return;
-      }
-      
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      console.log('Fetching saved carts for user:', user.id);
-      console.log('Using Supabase user ID:', supabaseUserId);
       
       const { data, error } = await supabase
         .from('saved_carts')
         .select('*')
-        .eq('user_id', supabaseUserId)
+        .eq('user_id', user?.id || '')
         .order('updated_at', { ascending: false });
       
-      if (error) {
-        setError("Failed to load your saved carts");
-        console.error("Error fetching saved carts:", error);
-        if (!errorShown) {
-          toast.error("Failed to load your saved carts");
-          setErrorShown(true);
-        }
-        return;
-      }
+      if (error) throw error;
       
       // Type conversion - ensure items are properly typed as CartItem[]
       const typedCarts: SavedCart[] = data?.map(cart => ({
@@ -74,15 +50,9 @@ export default function SavedCartsSection() {
         items: Array.isArray(cart.items) ? (cart.items as any) as CartItem[] : []
       })) || [];
       
-      console.log(`Found ${typedCarts.length} saved carts`);
       setSavedCarts(typedCarts);
     } catch (error: any) {
-      setError(error.message || "An error occurred while fetching saved carts");
-      console.error("Error fetching saved carts:", error);
-      if (!errorShown) {
-        toast.error("Failed to load your saved carts");
-        setErrorShown(true);
-      }
+      toast.error(error.message || "Error fetching saved carts");
     } finally {
       setLoading(false);
     }
@@ -99,22 +69,17 @@ export default function SavedCartsSection() {
   
   const handleDeleteCart = async (cartId: string) => {
     try {
-      if (!user) return;
-      
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      
       const { error } = await supabase
         .from('saved_carts')
         .delete()
         .eq('id', cartId)
-        .eq('user_id', supabaseUserId);
+        .eq('user_id', user?.id || '');
       
       if (error) throw error;
       
       setSavedCarts(savedCarts.filter(cart => cart.id !== cartId));
       toast.success("Saved cart deleted successfully");
     } catch (error: any) {
-      console.error("Error deleting saved cart:", error);
       toast.error(error.message || "Error deleting saved cart");
     }
   };
@@ -130,12 +95,6 @@ export default function SavedCartsSection() {
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold">Your Saved Carts</h3>
-
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
 
       {savedCarts.length === 0 ? (
         <Card>

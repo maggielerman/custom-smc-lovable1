@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDrafts } from "@/context/DraftsContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, Trash2, PlusCircle, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Edit, Trash2, PlusCircle, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,38 +17,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function SavedDraftsSection() {
   const { user } = useAuth();
-  const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts, error } = useDrafts();
+  const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts } = useDrafts();
   const navigate = useNavigate();
-  const [errorShown, setErrorShown] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only fetch if we have a user and we're not already loading
-    if (user && !loadingSavedDrafts) {
+    if (user) {
       console.log("SavedDraftsSection - Fetching drafts for user:", user.id);
-      fetchSavedDrafts().catch(err => {
-        console.error("Error fetching drafts:", err);
-      });
+      fetchSavedDrafts();
     } else {
-      console.log("SavedDraftsSection - No user found or already loading");
+      console.log("SavedDraftsSection - No user found");
     }
-  }, [user, fetchSavedDrafts, loadingSavedDrafts]);
-
-  // Handle error state without infinite toasts
-  useEffect(() => {
-    if (error && error !== errorShown) {
-      // Only show error toast once per unique error message
-      console.log("Showing error toast:", error);
-      toast.error(error);
-      setErrorShown(error);
-    } else if (!error) {
-      setErrorShown(null);
-    }
-  }, [error, errorShown]);
+  }, [user, fetchSavedDrafts]);
 
   const handleLoadDraft = (draftIndex: number) => {
     const draft = savedDrafts[draftIndex];
@@ -58,27 +40,14 @@ export default function SavedDraftsSection() {
   };
 
   const handleDeleteDraft = async (draftId: string) => {
-    try {
-      await deleteDraft(draftId);
-    } catch (error) {
-      console.error("Error deleting draft:", error);
-      // Toast is already handled in the deleteDraft function
-    }
+    await deleteDraft(draftId);
   };
 
   const handleRefreshDrafts = () => {
-    if (user) {
-      toast.info("Refreshing drafts...");
-      fetchSavedDrafts().catch(err => {
-        console.error("Error refreshing drafts:", err);
-        // Error toast is handled in the context
-      });
-    } else {
-      toast.error("Please sign in to view drafts");
-    }
+    fetchSavedDrafts();
   };
 
-  console.log("SavedDraftsSection rendering with:", { loadingSavedDrafts, draftsCount: savedDrafts.length, error });
+  console.log("SavedDraftsSection rendering with:", { loadingSavedDrafts, draftsCount: savedDrafts.length });
 
   return (
     <div className="space-y-6">
@@ -105,25 +74,6 @@ export default function SavedDraftsSection() {
         </div>
       </div>
 
-      {/* Show error alert instead of toast loop */}
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription className="flex justify-between items-center">
-            <span>{error}</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefreshDrafts}
-              disabled={loadingSavedDrafts}
-            >
-              Try Again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {loadingSavedDrafts ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-book-red" />
@@ -131,9 +81,7 @@ export default function SavedDraftsSection() {
       ) : savedDrafts.length === 0 ? (
         <Card className="mb-8 bg-muted/40">
           <CardContent className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              {error ? "Could not load your drafts" : "You don't have any saved drafts yet."}
-            </p>
+            <p className="text-muted-foreground mb-4">You don't have any saved drafts yet.</p>
             <Button 
               onClick={() => navigate("/create")} 
               className="bg-book-red hover:bg-red-700 text-white"

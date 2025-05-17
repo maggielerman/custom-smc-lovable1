@@ -1,36 +1,19 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import Cart from './cart/Cart';
 import { useAuth } from '@/context/AuthContext';
-import { UserButton } from '@clerk/clerk-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 
 const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut, isLoaded } = useAuth();
+  const { user } = useAuth();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate("/");
-    } catch (error) {
-      console.error("Failed to sign out:", error);
-    }
   };
 
   return (
@@ -63,27 +46,16 @@ const Navbar: React.FC = () => {
             </Link>
             <Cart className="mr-2" />
             
-            {/* Auth buttons */}
-            {isLoaded && user ? (
-              <div className="flex items-center">
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: "w-8 h-8",
-                      userButtonTrigger: "focus:outline-none focus:ring-2 focus:ring-book-red/30 rounded-full",
-                      userButtonPopoverCard: "shadow-lg border border-gray-100 rounded-lg",
-                      userButtonPopoverActionButton: "hover:bg-gray-50",
-                      userButtonPopoverActionButtonIcon: "text-gray-500",
-                      userButtonPopoverActionButtonText: "text-gray-700",
-                      userPreviewMainIdentifier: "text-gray-900",
-                      userPreviewSecondaryIdentifier: "text-gray-500",
-                    }
-                  }}
-                  userProfileMode="navigation"
-                  userProfileUrl="/profile"
-                />
-              </div>
+            {user ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => navigate("/profile")}
+              >
+                <User size={18} />
+                <span>Account</span>
+              </Button>
             ) : (
               <Button 
                 onClick={() => navigate("/auth")}
@@ -160,25 +132,14 @@ const Navbar: React.FC = () => {
             FAQ
           </Link>
           
-          {isLoaded && user ? (
-            <>
-              <Link
-                to="/profile"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                My Account
-              </Link>
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setMobileMenuOpen(false);
-                }}
-                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
-            </>
+          {user ? (
+            <Link
+              to="/profile"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-book-red hover:bg-gray-50"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              My Account
+            </Link>
           ) : (
             <Link
               to="/auth"

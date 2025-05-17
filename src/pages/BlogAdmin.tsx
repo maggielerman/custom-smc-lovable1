@@ -45,18 +45,13 @@ const BlogAdmin = () => {
       }
 
       try {
-        // For Clerk integration, we'll check admin status from Supabase
-        // This can be adapted to use Clerk's roles system if implemented
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('role', 'admin');
+          .rpc('has_role', { _user_id: user.id, _role: 'admin' });
         
-        const hasAdminRole = data && data.length > 0;
+        if (error) throw error;
         
-        setIsAdmin(hasAdminRole);
-        if (!hasAdminRole) {
+        setIsAdmin(!!data);
+        if (!data) {
           toast.error("You don't have permission to access this page");
           navigate("/");
         } else {

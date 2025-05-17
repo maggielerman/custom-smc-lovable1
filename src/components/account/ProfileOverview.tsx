@@ -7,20 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, BookOpen, FileText, UserRound } from "lucide-react";
+import { Loader2, BookOpen, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ClerkUserProfile from "./ClerkUserProfile";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { getSafeSupabaseId, syncProfileToClerk } from "@/lib/auth/clerk-helpers";
 
 interface ProfileData {
   id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  email: string | null;
-  clerk_id: string | null;
 }
 
 export default function ProfileOverview() {
@@ -29,7 +23,6 @@ export default function ProfileOverview() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [activeTab, setActiveTab] = useState<"basic" | "advanced">("basic");
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -38,83 +31,25 @@ export default function ProfileOverview() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
       return;
     }
 
     const fetchProfile = async () => {
       try {
-        const supabaseUserId = getSafeSupabaseId(user.id);
-        if (!supabaseUserId) {
-          setLoading(false);
-          return;
-        }
-        
-        console.log("Fetching profile for user ID:", user.id);
-        console.log("Using Supabase user ID:", supabaseUserId);
-        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', supabaseUserId)
-          .maybeSingle();
+          .eq('id', user.id)
+          .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching profile:", error);
-          throw error;
-        }
-        
-        // If profile exists, use it
-        if (data) {
-          console.log("Profile found:", data);
-          setProfileData(data);
-          setFormData({
-            firstName: data.first_name || "",
-            lastName: data.last_name || "",
-          });
-        } 
-        // If no profile exists yet for the Clerk user, create one
-        else {
-          console.log("No profile found, creating new profile");
-          const firstName = user.firstName || "";
-          const lastName = user.lastName || "";
-          const primaryEmail = user.emailAddresses?.find((email: any) => 
-            email.id === user.primaryEmailAddressId
-          )?.emailAddress || user.email || null;
-          
-          // Get avatar URL from Clerk
-          const avatarUrl = user.imageUrl || null;
-          
-          // Create new profile in Supabase
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: supabaseUserId,
-              first_name: firstName,
-              last_name: lastName,
-              avatar_url: avatarUrl,
-              email: primaryEmail,
-              clerk_id: user.id,
-              updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-          if (createError) {
-            console.error("Error creating profile:", createError);
-            toast.error("Failed to create user profile");
-            throw createError;
-          }
-          
-          console.log("Created new profile:", newProfile);
-          setProfileData(newProfile);
-          setFormData({
-            firstName: firstName,
-            lastName: lastName,
-          });
-        }
+        if (error) throw error;
+
+        setProfileData(data);
+        setFormData({
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+        });
       } catch (error: any) {
-        console.error("Error in profile fetch/create:", error);
         toast.error(error.message || "Error loading profile");
       } finally {
         setLoading(false);
@@ -138,79 +73,35 @@ export default function ProfileOverview() {
     
     try {
       setUpdating(true);
-      const supabaseUserId = getSafeSupabaseId(user.id);
-      if (!supabaseUserId) {
-        setUpdating(false);
-        return;
-      }
       
-      // Update Supabase profile
-      const { data: updatedProfile, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           first_name: formData.firstName || null,
           last_name: formData.lastName || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', supabaseUserId)
-        .select()
-        .single();
+        .eq('id', user.id);
 
-      if (error) {
-        console.error("Error updating profile in Supabase:", error);
-        throw error;
-      }
-      
-      // Also update Clerk user metadata if available
-      try {
-        await user.update({
-          firstName: formData.firstName || undefined,
-          lastName: formData.lastName || undefined
-        });
-        console.log("Clerk profile updated successfully");
-      } catch (clerkError) {
-        console.error("Failed to update Clerk profile:", clerkError);
-        // Continue with the flow even if Clerk update fails
-      }
+      if (error) throw error;
       
       toast.success("Profile updated successfully");
       
       // Update local state
-      setProfileData(updatedProfile);
+      setProfileData(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          first_name: formData.firstName || null,
+          last_name: formData.lastName || null,
+        };
+      });
     } catch (error: any) {
-      console.error("Profile update error:", error);
       toast.error(error.message || "Error updating profile");
     } finally {
       setUpdating(false);
     }
   };
-
-  // Helper function to get avatar display data
-  const getAvatarData = () => {
-    // First try profile avatar from Supabase
-    if (profileData?.avatar_url) {
-      return {
-        src: profileData.avatar_url,
-        fallback: `${profileData.first_name?.[0] || ''}${profileData.last_name?.[0] || ''}`
-      };
-    }
-    
-    // Then try Clerk avatar
-    if (user?.imageUrl) {
-      return {
-        src: user.imageUrl,
-        fallback: `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`
-      };
-    }
-    
-    // Final fallback
-    return {
-      src: null,
-      fallback: user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'U'
-    };
-  };
-  
-  const avatarData = getAvatarData();
 
   if (loading) {
     return (
@@ -222,140 +113,117 @@ export default function ProfileOverview() {
 
   return (
     <div className="space-y-8">
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "basic" | "advanced")} className="w-full">
-        <TabsList className="w-full mb-6">
-          <TabsTrigger value="basic" className="flex-1">Basic Profile</TabsTrigger>
-          <TabsTrigger value="advanced" className="flex-1">Advanced Settings</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="basic">
-          <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Your Profile</CardTitle>
-                <CardDescription>
-                  Manage your account information
-                </CardDescription>
-              </div>
-              <Avatar className="h-16 w-16 border-2 border-gray-200">
-                {avatarData.src ? (
-                  <AvatarImage src={avatarData.src} alt="Profile" />
-                ) : null}
-                <AvatarFallback className="bg-book-red/10 text-book-red">
-                  {avatarData.fallback || <UserRound className="h-6 w-6" />}
-                </AvatarFallback>
-              </Avatar>
-            </CardHeader>
-            <form onSubmit={handleUpdateProfile}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email"
-                    value={profileData?.email || user?.emailAddresses?.[0]?.emailAddress || user?.email || ""}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Email cannot be changed
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input 
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      placeholder="Enter your first name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input 
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      placeholder="Enter your last name"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  type="submit" 
-                  className="w-full sm:w-auto bg-book-red hover:bg-red-700 text-white"
-                  disabled={updating}
-                >
-                  {updating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                      Updating...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" /> Recent Books
-                </CardTitle>
-                <CardDescription>
-                  Books you've recently created
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No books created yet</p>
-                  <Button 
-                    variant="link" 
-                    className="mt-2 text-book-red"
-                    onClick={() => navigate('/create')}
-                  >
-                    Create your first book
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Profile</CardTitle>
+          <CardDescription>
+            Manage your account information
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleUpdateProfile}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-gray-50"
+              />
+              <p className="text-sm text-muted-foreground">
+                Email cannot be changed
+              </p>
+            </div>
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" /> Recent Drafts
-                </CardTitle>
-                <CardDescription>
-                  Book drafts you're working on
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>View all your drafts</p>
-                  <Button 
-                    variant="link" 
-                    className="mt-2 text-book-red"
-                    onClick={() => navigate('/profile/drafts')}
-                  >
-                    View all drafts
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input 
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="Enter your first name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input 
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Enter your last name"
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto bg-book-red hover:bg-red-700 text-white"
+              disabled={updating}
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  Updating...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BookOpen className="h-5 w-5 mr-2" /> Recent Books
+            </CardTitle>
+            <CardDescription>
+              Books you've recently created
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No books created yet</p>
+              <Button 
+                variant="link" 
+                className="mt-2 text-book-red"
+                onClick={() => navigate('/create')}
+              >
+                Create your first book
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         
-        <TabsContent value="advanced">
-          <ClerkUserProfile />
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="h-5 w-5 mr-2" /> Recent Drafts
+            </CardTitle>
+            <CardDescription>
+              Book drafts you're working on
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <p>View all your drafts</p>
+              <Button 
+                variant="link" 
+                className="mt-2 text-book-red"
+                onClick={() => navigate('/profile/drafts')}
+              >
+                View all drafts
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

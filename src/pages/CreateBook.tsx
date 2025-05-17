@@ -17,7 +17,6 @@ const CreateBookContent = () => {
   
   // Default price in cents (29.99)
   const bookPrice = 2999;
-  const bookTitle = childName ? `${childName}'s Special Story` : "Custom Children's Book";
   
   return (
     <>
@@ -28,7 +27,7 @@ const CreateBookContent = () => {
         <meta property="og:description" content="Create a personalized children's book explaining donor conception stories with love and care." />
       </Helmet>
       <ProductSchema 
-        bookTitle={bookTitle}
+        bookTitle={childName ? `${childName}'s Special Story` : "Custom Children's Book"}
         price={bookPrice}
       />
       <div className="min-h-screen flex flex-col">
@@ -118,11 +117,7 @@ const CreateBookContent = () => {
           </div>
         </main>
         <BookPreview />
-        <BookCheckout 
-          bookTitle={bookTitle}
-          bookPrice={bookPrice / 100} // Convert cents to dollars
-          coverImage="/placeholder.svg" 
-        />
+        <BookCheckout />
         <Footer />
       </div>
     </>

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect } from "react";
+import React, { useEffect } from "react";
 import { BookCustomizationProvider, useBookCustomization } from "./BookCustomizationContext";
 import { CartProvider, useCart } from "./CartContext";
 import { DraftsProvider, useDrafts } from "./DraftsContext";
@@ -60,7 +60,7 @@ const BookContextProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       drafts.fetchSavedDrafts();
     }
-  }, [user, drafts]);
+  }, [user, drafts.fetchSavedDrafts]);
   
   // Create a wrapper for saveDraft to match the old API
   const saveDraft = (title?: string): Promise<void> => {
@@ -130,13 +130,13 @@ const BookContextProvider = ({ children }: { children: React.ReactNode }) => {
   };
   
   return (
-    <>
+    <React.Fragment>
       {React.Children.map(children, child => {
         return React.isValidElement(child)
           ? React.cloneElement(child as React.ReactElement<any>, contextValue as any)
           : child;
       })}
-    </>
+    </React.Fragment>
   );
 };
 

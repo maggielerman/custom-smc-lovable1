@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
-import { clerkToSupabaseId } from "@/lib/utils";
 
 interface DraftsContextProps {
   savedDrafts: SavedDraft[];
@@ -25,7 +24,6 @@ interface DraftsContextProps {
   loadDraft: (draft: SavedDraft) => void;
   deleteDraft: (draftId: string) => Promise<void>;
   fetchSavedDrafts: () => Promise<void>;
-  error: string | null;
 }
 
 const DraftsContext = createContext<DraftsContextProps | undefined>(undefined);
@@ -36,9 +34,7 @@ export const DraftsProvider: React.FC<{
 }> = ({ children, onLoadDraft }) => {
   const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
-  const { user, getToken } = useAuth();
+  const { user } = useAuth();
 
   // Save book draft to Supabase
   const saveDraft = async (
@@ -62,26 +58,10 @@ export const DraftsProvider: React.FC<{
     try {
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      console.log('Saving draft with user ID:', supabaseUserId);
-      
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
-      
-      const { error } = await supabase
+      await supabase
         .from('saved_drafts')
         .insert({
-          user_id: supabaseUserId,
+          user_id: user.id,
           title: draftTitle,
           conception_type: bookData.conceptionType,
           family_structure: bookData.familyStructure,
@@ -93,11 +73,6 @@ export const DraftsProvider: React.FC<{
           used_surrogate: bookData.usedSurrogate
         });
         
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
-        
       toast.success("Draft saved successfully");
       
       // Update local state
@@ -108,57 +83,24 @@ export const DraftsProvider: React.FC<{
     }
   };
   
-  // Fetch user's saved drafts with debounce and error handling
+  // Fetch user's saved drafts
   const fetchSavedDrafts = useCallback(async (): Promise<void> => {
-    // Don't fetch if we don't have a user
     if (!user) {
-      console.log("No user available, clearing drafts");
       setSavedDrafts([]);
       setLoadingSavedDrafts(false);
-      setError(null);
       return;
     }
-    
-    // Prevent multiple rapid fetch attempts
-    const now = Date.now();
-    if (now - lastFetchAttempt < 3000) {
-      console.log("Fetch attempt too soon after last attempt, skipping");
-      return;
-    }
-    
-    setLastFetchAttempt(now);
     
     try {
       setLoadingSavedDrafts(true);
-      setError(null);
-      
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      console.log('Fetching drafts for user ID:', user.id);
-      console.log('Using Supabase user ID:', supabaseUserId);
-      
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
-      
-      // Use UUID filtering for Supabase
       const { data, error } = await supabase
         .from('saved_drafts')
         .select('*')
-        .eq('user_id', supabaseUserId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
       if (error) {
         console.error('Error fetching drafts:', error);
-        setError(error.message || "Failed to load your saved drafts");
         throw error;
       }
       
@@ -166,24 +108,16 @@ export const DraftsProvider: React.FC<{
       setSavedDrafts(data || []);
     } catch (error: any) {
       console.error('Error fetching drafts:', error);
-      setError(error.message || "Failed to load your saved drafts");
+      toast.error("Failed to load your saved drafts");
     } finally {
       setLoadingSavedDrafts(false);
     }
-  }, [user, lastFetchAttempt, getToken]);
+  }, [user]);
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
-    if (user) {
-      console.log('User changed, fetching drafts for user:', user.id);
-      fetchSavedDrafts().catch(error => {
-        console.error('Error in fetch drafts effect:', error);
-      });
-    } else {
-      console.log('No user available, clearing drafts');
-      setSavedDrafts([]);
-      setError(null);
-    }
+    console.log('User changed, fetching drafts for user:', user?.id);
+    fetchSavedDrafts();
   }, [fetchSavedDrafts, user]);
   
   // Load a saved draft
@@ -198,25 +132,11 @@ export const DraftsProvider: React.FC<{
     if (!user) return;
     
     try {
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
-      
       const { error } = await supabase
         .from('saved_drafts')
         .delete()
         .eq('id', draftId)
-        .eq('user_id', supabaseUserId);
+        .eq('user_id', user.id);
         
       if (error) throw error;
       
@@ -238,8 +158,7 @@ export const DraftsProvider: React.FC<{
         saveDraft,
         loadDraft,
         deleteDraft,
-        fetchSavedDrafts,
-        error
+        fetchSavedDrafts
       }}
     >
       {children}

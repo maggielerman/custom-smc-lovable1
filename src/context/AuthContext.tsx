@@ -1,115 +1,125 @@
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { 
-  useAuth as useClerkAuth, 
-  useUser, 
-  useClerk
-} from "@clerk/clerk-react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AuthContextType } from "@/lib/auth/types";
-import { ensureProfileExists } from "@/lib/auth/clerk-helpers";
-import { updateSupabaseAuthWithClerkSession } from "@/integrations/supabase/client";
+
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  signUp: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoaded: isAuthLoaded, isSignedIn, getToken } = useClerkAuth();
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const clerk = useClerk();
-  
-  // State to track if components should re-render after auth changes
-  const [authInitialized, setAuthInitialized] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Determine if we're still loading auth data
-  const loading = !isAuthLoaded || !isUserLoaded;
-  const isLoaded = isAuthLoaded && isUserLoaded;
-  
-  // Get user ID safely
-  const userId = isSignedIn && user ? user.id : null;
-
-  // Effect to sync Clerk session with Supabase
   useEffect(() => {
-    const syncAuthState = async () => {
-      if (isLoaded) {
-        try {
-          if (isSignedIn && user) {
-            // Get JWT token from Clerk
-            const token = await getToken({ template: "supabase" });
-            // Update Supabase auth with the Clerk JWT
-            await updateSupabaseAuthWithClerkSession(token);
-            console.log("Supabase auth updated with Clerk session");
-          } else {
-            // Clear Supabase session when signed out
-            await updateSupabaseAuthWithClerkSession(null);
-            console.log("Cleared Supabase auth session");
-            setProfileData(null);
-          }
-        } catch (error) {
-          console.error("Failed to sync Clerk session with Supabase:", error);
+    console.log("AuthContext: Setting up auth state listener");
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log("AuthContext: Auth state changed", { event, user: newSession?.user?.email });
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success("Successfully signed in");
+        } else if (event === 'SIGNED_OUT') {
+          toast.info("You have been signed out");
         }
       }
-    };
+    );
 
-    syncAuthState();
-  }, [isLoaded, isSignedIn, user, getToken]);
-
-  // Effect to handle auth state changes and force re-renders
-  useEffect(() => {
-    if (isLoaded) {
-      setAuthInitialized(true);
-      console.log("Auth initialized, signed in:", isSignedIn);
-      
-      // If user is signed in, ensure their profile exists in Supabase
-      if (isSignedIn && user) {
-        // Add some delay to ensure Clerk has fully processed the authentication
-        const timer = setTimeout(async () => {
-          console.log("Ensuring profile exists for user:", user.id);
-          try {
-            const profile = await ensureProfileExists(user);
-            setProfileData(profile);
-          } catch (err) {
-            console.error("Failed to ensure profile exists:", err);
-            toast.error("There was a problem with your profile. Please try logging out and back in.");
-          }
-        }, 1000); // Increased delay for better reliability
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isLoaded, isSignedIn, user]);
-
-  // Since we're using Clerk components, we don't need explicit functions for signUp, signIn
-  // We only need signOut which might be called from nav/account areas
-  const value = {
-    session: isSignedIn ? { user } : null,
-    user: isSignedIn ? user : null,
-    userId: userId,
-    profileData: profileData,
-    loading,
-    isLoaded,
-    // Pass the getToken method from Clerk's useAuth hook
-    getToken,
-    signUp: async () => {
-      toast.error("Please use the sign up form");
-    },
-    signIn: async () => {
-      toast.error("Please use the sign in form");
-    },
-    signOut: async () => {
+    // THEN check for existing session
+    const checkSession = async () => {
       try {
-        await clerk.signOut();
-        setProfileData(null);
-        toast.info("You have been signed out");
-      } catch (error: any) {
-        console.error("AuthContext: Sign out error", error);
-        toast.error(error.message || "Failed to sign out");
-        throw error;
+        console.log("AuthContext: Checking for existing session");
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log("AuthContext: Initial session check complete", { 
+          hasSession: !!initialSession, 
+          userEmail: initialSession?.user?.email 
+        });
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+      } catch (error) {
+        console.error("AuthContext: Error checking session", error);
+      } finally {
+        setLoading(false);
       }
-    },
-    signInWithGoogle: async () => {
-      toast.error("Please use the sign in form");
-    },
+    };
+    
+    checkSession();
+
+    return () => {
+      console.log("AuthContext: Unsubscribing from auth state changes");
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const signUp = async (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => {
+    try {
+      console.log("AuthContext: Attempting to sign up", { email });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata
+        }
+      });
+
+      if (error) throw error;
+      toast.success("Registration successful! Check your email to confirm your account.");
+    } catch (error: any) {
+      console.error("AuthContext: Sign up error", error);
+      toast.error(error.message || "An error occurred during signup");
+      throw error;
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      console.log("AuthContext: Attempting to sign in", { email });
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      console.log("AuthContext: Sign in successful", { user: data?.user?.email });
+    } catch (error: any) {
+      console.error("AuthContext: Sign in error", error);
+      toast.error(error.message || "Failed to sign in");
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      console.log("AuthContext: Attempting to sign out");
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      console.log("AuthContext: Sign out successful");
+    } catch (error: any) {
+      console.error("AuthContext: Sign out error", error);
+      toast.error(error.message || "Failed to sign out");
+      throw error;
+    }
+  };
+
+  const value = {
+    session,
+    user,
+    loading,
+    signUp,
+    signIn,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
