@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, BookOpen, FileText } from "lucide-react";
+import { Loader2, BookOpen, FileText, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { clerkToSupabaseId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClerkUserProfile from "./ClerkUserProfile";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getSafeSupabaseId, syncProfileToClerk } from "@/lib/auth/clerk-helpers";
 
 interface ProfileData {
   id: string;
@@ -44,7 +44,12 @@ export default function ProfileOverview() {
 
     const fetchProfile = async () => {
       try {
-        const supabaseUserId = clerkToSupabaseId(user.id);
+        const supabaseUserId = getSafeSupabaseId(user.id);
+        if (!supabaseUserId) {
+          setLoading(false);
+          return;
+        }
+        
         console.log("Fetching profile for user ID:", user.id);
         console.log("Using Supabase user ID:", supabaseUserId);
         
@@ -77,6 +82,9 @@ export default function ProfileOverview() {
             email.id === user.primaryEmailAddressId
           )?.emailAddress || user.email || null;
           
+          // Get avatar URL from Clerk
+          const avatarUrl = user.imageUrl || null;
+          
           // Create new profile in Supabase
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
@@ -84,6 +92,7 @@ export default function ProfileOverview() {
               id: supabaseUserId,
               first_name: firstName,
               last_name: lastName,
+              avatar_url: avatarUrl,
               email: primaryEmail,
               clerk_id: user.id,
               updated_at: new Date().toISOString()
@@ -129,17 +138,23 @@ export default function ProfileOverview() {
     
     try {
       setUpdating(true);
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        setUpdating(false);
+        return;
+      }
       
       // Update Supabase profile
-      const { error } = await supabase
+      const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update({
           first_name: formData.firstName || null,
           last_name: formData.lastName || null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', supabaseUserId);
+        .eq('id', supabaseUserId)
+        .select()
+        .single();
 
       if (error) {
         console.error("Error updating profile in Supabase:", error);
@@ -161,14 +176,7 @@ export default function ProfileOverview() {
       toast.success("Profile updated successfully");
       
       // Update local state
-      setProfileData(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          first_name: formData.firstName || null,
-          last_name: formData.lastName || null,
-        };
-      });
+      setProfileData(updatedProfile);
     } catch (error: any) {
       console.error("Profile update error:", error);
       toast.error(error.message || "Error updating profile");
@@ -176,6 +184,33 @@ export default function ProfileOverview() {
       setUpdating(false);
     }
   };
+
+  // Helper function to get avatar display data
+  const getAvatarData = () => {
+    // First try profile avatar from Supabase
+    if (profileData?.avatar_url) {
+      return {
+        src: profileData.avatar_url,
+        fallback: `${profileData.first_name?.[0] || ''}${profileData.last_name?.[0] || ''}`
+      };
+    }
+    
+    // Then try Clerk avatar
+    if (user?.imageUrl) {
+      return {
+        src: user.imageUrl,
+        fallback: `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`
+      };
+    }
+    
+    // Final fallback
+    return {
+      src: null,
+      fallback: user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'U'
+    };
+  };
+  
+  const avatarData = getAvatarData();
 
   if (loading) {
     return (
@@ -202,12 +237,14 @@ export default function ProfileOverview() {
                   Manage your account information
                 </CardDescription>
               </div>
-              {profileData?.avatar_url && (
-                <Avatar className="h-16 w-16 border-2 border-gray-200">
-                  <AvatarImage src={profileData.avatar_url} alt="Profile" />
-                  <AvatarFallback>{profileData.first_name?.[0]}{profileData.last_name?.[0]}</AvatarFallback>
-                </Avatar>
-              )}
+              <Avatar className="h-16 w-16 border-2 border-gray-200">
+                {avatarData.src ? (
+                  <AvatarImage src={avatarData.src} alt="Profile" />
+                ) : null}
+                <AvatarFallback className="bg-book-red/10 text-book-red">
+                  {avatarData.fallback || <UserRound className="h-6 w-6" />}
+                </AvatarFallback>
+              </Avatar>
             </CardHeader>
             <form onSubmit={handleUpdateProfile}>
               <CardContent className="space-y-4">

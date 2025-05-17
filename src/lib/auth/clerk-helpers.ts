@@ -10,7 +10,7 @@ import { clerkToSupabaseId } from "@/lib/utils";
 export const ensureProfileExists = async (user: any) => {
   if (!user) {
     console.error("No user provided to ensureProfileExists");
-    return;
+    return null;
   }
   
   try {
@@ -22,12 +22,16 @@ export const ensureProfileExists = async (user: any) => {
       email.id === user.primaryEmailAddressId
     )?.emailAddress || user.email || null;
     
+    // Get avatar URL from Clerk
+    const avatarUrl = user.imageUrl || null;
+    
     console.log("Ensuring profile exists:", { 
       clerkId, 
       supabaseId,
       firstName: user.firstName,
       lastName: user.lastName,
-      email: primaryEmail
+      email: primaryEmail,
+      avatarUrl
     });
     
     // First check if profile exists
@@ -39,17 +43,16 @@ export const ensureProfileExists = async (user: any) => {
       
     if (error && error.code !== 'PGRST116') {
       console.error("Error checking profile:", error);
-      return;
+      return null;
     }
     
     const firstName = user.firstName || null;
     const lastName = user.lastName || null;
-    const avatarUrl = user.imageUrl || null;
     
     // If profile doesn't exist, create it
     if (!data) {
       console.log("Profile not found. Creating new profile with ID:", supabaseId);
-      const { error: createError } = await supabase
+      const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert({
           id: supabaseId,
@@ -59,14 +62,17 @@ export const ensureProfileExists = async (user: any) => {
           email: primaryEmail,
           clerk_id: clerkId,
           updated_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
         
       if (createError) {
         console.error("Failed to create profile:", createError);
         toast.error("Failed to set up your profile. Please try logging out and back in.");
+        return null;
       } else {
         console.log("Profile created successfully");
-        toast.success("Profile set up successfully");
+        return newProfile;
       }
     } 
     // If profile exists but data is different, synchronize it
@@ -82,7 +88,7 @@ export const ensureProfileExists = async (user: any) => {
         new: { firstName, lastName, avatarUrl, email: primaryEmail, clerkId }
       });
       
-      const { error: updateError } = await supabase
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
           first_name: firstName,
@@ -92,19 +98,25 @@ export const ensureProfileExists = async (user: any) => {
           clerk_id: clerkId,
           updated_at: new Date().toISOString()
         })
-        .eq('id', supabaseId);
+        .eq('id', supabaseId)
+        .select()
+        .single();
         
       if (updateError) {
         console.error("Failed to update profile:", updateError);
+        return data;
       } else {
         console.log("Profile synchronized successfully");
+        return updatedProfile;
       }
     } else {
       console.log("User profile exists and is up to date:", data);
+      return data;
     }
   } catch (error) {
     console.error("Error in profile check:", error);
     toast.error("There was a problem with your profile. Please try logging out and back in.");
+    return null;
   }
 };
 
@@ -113,22 +125,45 @@ export const ensureProfileExists = async (user: any) => {
  * Call this when profile data is updated in Supabase outside of Clerk
  */
 export const syncProfileToClerk = async (user: any, profileData: any) => {
-  if (!user || !profileData) return;
+  if (!user || !profileData) return false;
   
   try {
     // Check if Clerk data needs updating
-    if (
+    const needsUpdate = 
       user.firstName !== profileData.first_name || 
-      user.lastName !== profileData.last_name
-    ) {
+      user.lastName !== profileData.last_name;
+      
+    if (needsUpdate) {
       console.log("Syncing Supabase profile data to Clerk");
       await user.update({
         firstName: profileData.first_name || undefined,
-        lastName: profileData.last_name || undefined
+        lastName: profileData.last_name || undefined,
       });
       console.log("Clerk profile updated successfully");
+      return true;
     }
+    return false;
   } catch (error) {
     console.error("Error syncing profile to Clerk:", error);
+    return false;
+  }
+};
+
+/**
+ * Safely gets a Supabase ID from a Clerk user 
+ * with built-in error handling
+ */
+export const getSafeSupabaseId = (clerkId: string): string | null => {
+  if (!clerkId) {
+    console.error("Missing Clerk ID in getSafeSupabaseId");
+    return null;
+  }
+  
+  try {
+    return clerkToSupabaseId(clerkId);
+  } catch (error) {
+    console.error("Failed to convert Clerk ID to Supabase ID:", error);
+    toast.error("Error with user identification. Please refresh the page.");
+    return null;
   }
 };

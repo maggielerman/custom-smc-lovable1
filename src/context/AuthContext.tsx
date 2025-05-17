@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // State to track if components should re-render after auth changes
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
 
   // Determine if we're still loading auth data
   const loading = !isAuthLoaded || !isUserLoaded;
@@ -31,20 +32,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const syncAuthState = async () => {
       if (isLoaded) {
-        if (isSignedIn && user) {
-          try {
+        try {
+          if (isSignedIn && user) {
             // Get JWT token from Clerk
             const token = await getToken({ template: "supabase" });
             // Update Supabase auth with the Clerk JWT
             await updateSupabaseAuthWithClerkSession(token);
             console.log("Supabase auth updated with Clerk session");
-          } catch (error) {
-            console.error("Failed to sync Clerk session with Supabase:", error);
+          } else {
+            // Clear Supabase session when signed out
+            await updateSupabaseAuthWithClerkSession(null);
+            console.log("Cleared Supabase auth session");
+            setProfileData(null);
           }
-        } else {
-          // Clear Supabase session when signed out
-          await updateSupabaseAuthWithClerkSession(null);
-          console.log("Cleared Supabase auth session");
+        } catch (error) {
+          console.error("Failed to sync Clerk session with Supabase:", error);
         }
       }
     };
@@ -61,14 +63,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If user is signed in, ensure their profile exists in Supabase
       if (isSignedIn && user) {
         // Add some delay to ensure Clerk has fully processed the authentication
-        setTimeout(() => {
+        const timer = setTimeout(async () => {
           console.log("Ensuring profile exists for user:", user.id);
-          ensureProfileExists(user)
-            .catch(err => {
-              console.error("Failed to ensure profile exists:", err);
-              toast.error("There was a problem with your profile. Please try logging out and back in.");
-            });
+          try {
+            const profile = await ensureProfileExists(user);
+            setProfileData(profile);
+          } catch (err) {
+            console.error("Failed to ensure profile exists:", err);
+            toast.error("There was a problem with your profile. Please try logging out and back in.");
+          }
         }, 1000); // Increased delay for better reliability
+        
+        return () => clearTimeout(timer);
       }
     }
   }, [isLoaded, isSignedIn, user]);
@@ -79,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session: isSignedIn ? { user } : null,
     user: isSignedIn ? user : null,
     userId: userId,
+    profileData: profileData,
     loading,
     isLoaded,
     // Pass the getToken method from Clerk's useAuth hook
@@ -92,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut: async () => {
       try {
         await clerk.signOut();
+        setProfileData(null);
         toast.info("You have been signed out");
       } catch (error: any) {
         console.error("AuthContext: Sign out error", error);
