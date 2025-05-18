@@ -19,7 +19,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loadingCart, setLoadingCart] = useState(false);
   const [cartErrorShown, setCartErrorShown] = useState(false);
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
 
   // Load cart from Supabase when user signs in
   useEffect(() => {
@@ -40,7 +40,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Loading cart for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
-      const { items, error } = await loadCartFromSupabase(supabaseUserId);
+      const { items, error } = await loadCartFromSupabase(
+        supabaseUserId,
+        getToken
+      );
       
       if (error) {
         console.error('Error loading cart:', error);
@@ -76,7 +79,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If user is logged in, try to save cart to Supabase
       if (user) {
         const supabaseUserId = clerkToSupabaseId(user.id);
-        saveCartToSupabase(supabaseUserId, updatedCart);
+        saveCartToSupabase(supabaseUserId, updatedCart, getToken);
       }
     }
   };
@@ -88,7 +91,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      saveCartToSupabase(supabaseUserId, updatedCart);
+      saveCartToSupabase(supabaseUserId, updatedCart, getToken);
     }
   };
   
@@ -98,7 +101,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      saveCartToSupabase(supabaseUserId, []);
+      saveCartToSupabase(supabaseUserId, [], getToken);
     }
   };
 
@@ -111,7 +114,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      await saveCartWithNameToSupabase(supabaseUserId, name, cartItems);
+      await saveCartWithNameToSupabase(supabaseUserId, name, cartItems, getToken);
     } catch (error) {
       // Error handling is done in the utility function
       console.error('Error in saveCartWithName:', error);

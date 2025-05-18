@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncSupabaseSession } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
@@ -22,7 +22,7 @@ interface SavedCart {
 }
 
 export default function SavedCartsSection() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const { addToCart } = useCart();
   const [savedCarts, setSavedCarts] = useState<SavedCart[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,12 +45,15 @@ export default function SavedCartsSection() {
         setSavedCarts([]);
         return;
       }
-      
+
       // Convert Clerk ID to UUID format for Supabase
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Fetching saved carts for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
-      
+
+      // Ensure Supabase session is valid
+      await syncSupabaseSession(getToken);
+
       const { data, error } = await supabase
         .from('saved_carts')
         .select('*')
@@ -100,9 +103,11 @@ export default function SavedCartsSection() {
   const handleDeleteCart = async (cartId: string) => {
     try {
       if (!user) return;
-      
+
       const supabaseUserId = clerkToSupabaseId(user.id);
-      
+
+      await syncSupabaseSession(getToken);
+
       const { error } = await supabase
         .from('saved_carts')
         .delete()

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncSupabaseSession } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ interface FamilyMember {
 }
 
 export default function FamilyDetails() {
-  const { user, userId } = useAuth();
+  const { user, userId, getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -48,7 +48,9 @@ export default function FamilyDetails() {
       try {
         setLoading(true);
         const supabaseUserId = getSupabaseUserId();
-        
+
+        await syncSupabaseSession(getToken);
+
         const { data, error } = await supabase
           .from('family_members')
           .select('*')
@@ -80,7 +82,9 @@ export default function FamilyDetails() {
       try {
         setLoadingStory(true);
         const supabaseUserId = getSupabaseUserId();
-        
+
+        await syncSupabaseSession(getToken);
+
         const { data, error } = await supabase
           .from('family_stories')
           .select('story')
@@ -128,6 +132,8 @@ export default function FamilyDetails() {
     try {
       setSaving(true);
       const supabaseUserId = getSupabaseUserId();
+
+      await syncSupabaseSession(getToken);
       
       const newMemberData = {
         user_id: supabaseUserId,
@@ -177,7 +183,9 @@ export default function FamilyDetails() {
 
     try {
       setSaving(true);
-      
+
+      await syncSupabaseSession(getToken);
+
       const { error } = await supabase
         .from('family_members')
         .delete()
@@ -214,7 +222,9 @@ export default function FamilyDetails() {
     try {
       setSavingStory(true);
       const supabaseUserId = getSupabaseUserId();
-      
+
+      await syncSupabaseSession(getToken);
+
       // First check if a story already exists
       const { data: existingStory } = await supabase
         .from('family_stories')

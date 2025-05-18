@@ -18,16 +18,44 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
+// Ensure the Supabase client has a fresh session using Clerk's JWT token.
+// Pass Clerk's `getToken` method from useAuth. This helper is safe to call
+// before any operation that relies on RLS.
+export const syncSupabaseSession = async (
+  getToken: (() => Promise<string | null>) | undefined
+): Promise<boolean> => {
+  if (!getToken) return false;
+
+  try {
+    const token = await getToken({ template: "supabase" });
+    if (!token) {
+      console.error("syncSupabaseSession: unable to obtain Clerk token");
+      return false;
+    }
+
+    await updateSupabaseAuthWithClerkSession(token);
+    return true;
+  } catch (error) {
+    console.error("syncSupabaseSession failed:", error);
+    return false;
+  }
+};
+
 // When user is authenticated with Clerk, set their JWT as the supabase token
 export const updateSupabaseAuthWithClerkSession = async (clerkToken: string | null) => {
-  console.log("Updating Supabase auth with Clerk token:", clerkToken ? "Token provided" : "No token");
+  console.log(
+    "Updating Supabase auth with Clerk token:",
+    clerkToken ? "Token provided" : "No token"
+  );
   
   try {
     if (clerkToken) {
-      // Set the Clerk JWT as the Supabase auth token
-      const { data, error } = await supabase.auth.setSession({ 
-        access_token: clerkToken, 
-        refresh_token: '' 
+      // Set the Clerk JWT as the Supabase auth token. We don't have a refresh
+      // token from Clerk, so reuse the same token to satisfy the Supabase
+      // client API.
+      const { data, error } = await supabase.auth.setSession({
+        access_token: clerkToken,
+        refresh_token: clerkToken
       });
       
       if (error) {
@@ -39,15 +67,10 @@ export const updateSupabaseAuthWithClerkSession = async (clerkToken: string | nu
       return true;
     } else {
       // Clear the session if no token is provided
-      const { error } = await supabase.auth.setSession({ 
-        access_token: '', 
-        refresh_token: '' 
-      });
-      
+      const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Error clearing Supabase session:", error);
       }
-      
       return false;
     }
   } catch (error) {

@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncSupabaseSession } from "@/integrations/supabase/client";
 import { CartItem } from "@/types/bookTypes";
 import { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -7,8 +7,12 @@ import { toast } from "sonner";
 // Save cart to Supabase
 export const saveCartToSupabase = async (
   userId: string,
-  items: CartItem[]
+  items: CartItem[],
+  getToken?: () => Promise<string | null>
 ): Promise<void> => {
+  if (getToken) {
+    await syncSupabaseSession(getToken);
+  }
   try {
     const totalAmount = calculateCartTotal(items);
     
@@ -66,8 +70,12 @@ export const saveCartToSupabase = async (
 export const saveCartWithNameToSupabase = async (
   userId: string,
   name: string,
-  items: CartItem[]
+  items: CartItem[],
+  getToken?: () => Promise<string | null>
 ): Promise<void> => {
+  if (getToken) {
+    await syncSupabaseSession(getToken);
+  }
   if (items.length === 0) {
     toast.error("Cannot save an empty cart");
     throw new Error("Cannot save an empty cart");
@@ -99,8 +107,12 @@ export const saveCartWithNameToSupabase = async (
 
 // Load cart from Supabase
 export const loadCartFromSupabase = async (
-  userId: string
+  userId: string,
+  getToken?: () => Promise<string | null>
 ): Promise<{ items: CartItem[] | null; error: Error | null }> => {
+  if (getToken) {
+    await syncSupabaseSession(getToken);
+  }
   try {
     const { data, error } = await supabase
       .from('saved_carts')
