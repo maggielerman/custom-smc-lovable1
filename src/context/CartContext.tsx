@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { clerkToSupabaseId } from "@/lib/utils";
 import { CartContextType } from "@/types/cartTypes";
@@ -19,7 +20,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loadingCart, setLoadingCart] = useState(false);
   const [cartErrorShown, setCartErrorShown] = useState(false);
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
+
+  // Ensure Supabase session is synced with Clerk
+  const ensureSupabaseSession = async () => {
+    try {
+      const token = await getToken({ template: "supabase" });
+      if (token) {
+        await supabase.auth.setSession({ access_token: token, refresh_token: "" });
+      } else {
+        console.error("Failed to get authentication token");
+      }
+    } catch (error) {
+      console.error("Error setting Supabase session:", error);
+    }
+  };
 
   // Load cart from Supabase when user signs in
   useEffect(() => {
@@ -31,10 +46,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load cart from Supabase
   const loadCart = async () => {
     if (!user) return;
-    
+
     try {
       setLoadingCart(true);
       setCartErrorShown(false);
+
+      await ensureSupabaseSession();
       
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Loading cart for user:', user.id);
@@ -66,7 +83,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   // Cart functions
-  const addToCart = (item: CartItem) => {
+  const addToCart = async (item: CartItem) => {
     // Check if item already exists in cart
     const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
     if (!existingItem) {
@@ -76,29 +93,32 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If user is logged in, try to save cart to Supabase
       if (user) {
         const supabaseUserId = clerkToSupabaseId(user.id);
-        saveCartToSupabase(supabaseUserId, updatedCart);
+        await ensureSupabaseSession();
+        await saveCartToSupabase(supabaseUserId, updatedCart);
       }
     }
   };
   
-  const removeFromCart = (itemId: string) => {
+  const removeFromCart = async (itemId: string) => {
     const updatedCart = cartItems.filter(item => item.id !== itemId);
     setCartItems(updatedCart);
     
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      saveCartToSupabase(supabaseUserId, updatedCart);
+      await ensureSupabaseSession();
+      await saveCartToSupabase(supabaseUserId, updatedCart);
     }
   };
   
-  const clearCart = () => {
+  const clearCart = async () => {
     setCartItems([]);
     
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      saveCartToSupabase(supabaseUserId, []);
+      await ensureSupabaseSession();
+      await saveCartToSupabase(supabaseUserId, []);
     }
   };
 
@@ -111,6 +131,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
+      await ensureSupabaseSession();
       await saveCartWithNameToSupabase(supabaseUserId, name, cartItems);
     } catch (error) {
       // Error handling is done in the utility function
