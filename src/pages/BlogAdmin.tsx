@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { clerkToSupabaseId } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,10 +48,11 @@ const BlogAdmin = () => {
       try {
         // For Clerk integration, we'll check admin status from Supabase
         // This can be adapted to use Clerk's roles system if implemented
+        const supabaseUserId = clerkToSupabaseId(user.id);
         const { data, error } = await supabase
           .from('user_roles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', supabaseUserId)
           .eq('role', 'admin');
         
         const hasAdminRole = data && data.length > 0;
@@ -96,6 +98,7 @@ const BlogAdmin = () => {
   const createNewPost = () => {
     if (!user) return;
     
+    const supabaseUserId = clerkToSupabaseId(user.id);
     const newPost = {
       id: "",
       title: "New Post",
@@ -107,7 +110,7 @@ const BlogAdmin = () => {
       is_published: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      author_id: user.id
+      author_id: supabaseUserId
     };
     
     setSelectedPost(newPost);
