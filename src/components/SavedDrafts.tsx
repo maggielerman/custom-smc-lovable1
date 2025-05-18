@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useBookContext } from "@/context/BookContext";
+import { useDrafts } from "@/context/DraftsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, Edit, PlusCircle } from "lucide-react";
+import { Loader2, Trash2, Edit, PlusCircle, AlertCircle } from "lucide-react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -17,18 +17,30 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const SavedDrafts = () => {
   const { savedDrafts, loadDraft, deleteDraft, loadingSavedDrafts, fetchSavedDrafts } = useBookContext();
-  const { user } = useAuth();
+  const { error } = useDrafts();
+  const { user, isLoaded } = useAuth();
   const navigate = useNavigate();
-  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const [errorShown, setErrorShown] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (isLoaded && user) {
       fetchSavedDrafts();
     }
-  }, [user, fetchSavedDrafts]);
+  }, [isLoaded, user, fetchSavedDrafts]);
+
+  // Handle error state without infinite toasts
+  useEffect(() => {
+    if (error && error !== errorShown) {
+      // Only show error toast once per unique error message
+      setErrorShown(error);
+    } else if (!error) {
+      setErrorShown(null);
+    }
+  }, [error, errorShown]);
 
   const handleLoadDraft = (draftIndex: number) => {
     const draft = savedDrafts[draftIndex];
@@ -40,6 +52,14 @@ const SavedDrafts = () => {
     await deleteDraft(draftId);
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-book-red" />
+      </div>
+    );
+  }
+  
   if (!user) {
     return (
       <Card className="mb-8">
@@ -82,10 +102,31 @@ const SavedDrafts = () => {
         </Button>
       </div>
 
+      {/* Show error alert if there's an error */}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription className="flex justify-between items-center">
+            <span>{error}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => fetchSavedDrafts()}
+              disabled={loadingSavedDrafts}
+            >
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {savedDrafts.length === 0 ? (
         <Card className="mb-8 bg-muted/40">
           <CardContent className="text-center py-12">
-            <p className="text-muted-foreground mb-4">You don't have any saved drafts yet.</p>
+            <p className="text-muted-foreground mb-4">
+              {error ? "Could not load your drafts" : "You don't have any saved drafts yet."}
+            </p>
             <Button 
               onClick={() => navigate("/create")} 
               className="bg-book-red hover:bg-red-700 text-white"

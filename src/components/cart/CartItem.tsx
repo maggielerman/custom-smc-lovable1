@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useBookContext } from "@/context/BookContext";
+import { useCart } from "@/context/CartContext";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ interface CartItemProps {
 }
 
 const CartItem: React.FC<CartItemProps> = ({ item }) => {
-  const { removeFromCart } = useBookContext();
+  const { removeFromCart } = useCart();
 
   return (
     <div className="flex items-center justify-between py-4 border-b">

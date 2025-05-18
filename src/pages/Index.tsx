@@ -15,6 +15,7 @@ import ProductSchema from "@/components/seo/ProductSchema";
 const HomePage = () => {
   // Default price in cents (29.99)
   const bookPrice = 2999;
+  const bookTitle = "Custom Children's Book";
   
   return (
     <>
@@ -38,7 +39,7 @@ const HomePage = () => {
         `}
       </script>
       <ProductSchema 
-        bookTitle="Custom Children's Book"
+        bookTitle={bookTitle}
         price={bookPrice}
       />
       <div className="min-h-screen flex flex-col">
@@ -50,7 +51,11 @@ const HomePage = () => {
           <SamplePages />
           <FAQ />
           <BookPreview />
-          <BookCheckout />
+          <BookCheckout 
+            bookTitle={bookTitle}
+            bookPrice={bookPrice / 100} // Convert cents to dollars
+            coverImage="/placeholder.svg"
+          />
         </main>
         <Footer />
       </div>

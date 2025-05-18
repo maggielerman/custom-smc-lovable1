@@ -1,15 +1,25 @@
 
-import React from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Helmet } from "react-helmet";
 import { Loader2 } from "lucide-react";
 import AccountNav from "./AccountNav";
+import { toast } from "sonner";
 
 export default function AccountLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, isLoaded } = useAuth();
+  const navigate = useNavigate();
   
-  if (loading) {
+  useEffect(() => {
+    if (isLoaded && !user) {
+      console.log("AccountLayout: No user found, redirecting to auth");
+      toast.error("Please sign in to access your account");
+      navigate("/auth", { state: { from: { pathname: "/profile" } } });
+    }
+  }, [user, isLoaded, navigate]);
+
+  if (loading || !isLoaded) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-book-red" />
@@ -17,8 +27,9 @@ export default function AccountLayout() {
     );
   }
   
-  if (!user) {
-    return <Navigate to="/auth" />;
+  // This check ensures the redirect happens properly
+  if (isLoaded && !user) {
+    return <Navigate to="/auth" state={{ from: { pathname: "/profile" } }} />;
   }
   
   return (
