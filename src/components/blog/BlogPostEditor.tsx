@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { clerkToSupabaseId } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,11 +160,12 @@ const BlogPostEditor: React.FC<BlogPostEditorProps> = ({
       }
       
       const now = new Date().toISOString();
+      const supabaseUserId = clerkToSupabaseId(user.id);
       const updatedPost = {
         ...formData,
         featured_image: imageUrl,
         updated_at: now,
-        author_id: user.id
+        author_id: supabaseUserId
       };
       
       let response;

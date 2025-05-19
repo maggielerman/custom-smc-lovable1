@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { clerkToSupabaseId } from "@/lib/utils";
 import { Helmet } from "react-helmet";
 import { Loader2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,8 +41,9 @@ const Blog = () => {
 
         // Check if user is admin
         if (user) {
+          const supabaseUserId = clerkToSupabaseId(user.id);
           const { data: isAdminData, error: adminError } = await supabase
-            .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+            .rpc('has_role', { _user_id: supabaseUserId, _role: 'admin' });
           
           if (!adminError) {
             setIsAdmin(!!isAdminData);
