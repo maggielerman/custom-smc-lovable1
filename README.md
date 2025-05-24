@@ -4,6 +4,16 @@
 
 **URL**: https://lovable.dev/projects/b687cc2e-cf10-4a9c-b67b-bd21c07f5fbd
 
+### Environment variables
+
+Create a `.env` file (or copy `.env.example`) and set the following values so the
+app can connect to your Supabase project:
+
+```bash
+VITE_SUPABASE_URL=<your-supabase-url>
+VITE_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

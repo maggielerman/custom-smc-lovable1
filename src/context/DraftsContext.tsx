@@ -38,7 +38,7 @@ export const DraftsProvider: React.FC<{
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
-  const { user, getToken } = useAuth();
+  const { user, refreshSupabaseSession } = useAuth();
 
   // Save book draft to Supabase
   const saveDraft = async (
@@ -66,17 +66,8 @@ export const DraftsProvider: React.FC<{
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Saving draft with user ID:', supabaseUserId);
       
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
+      // Refresh Supabase session to ensure RLS policies work
+      await refreshSupabaseSession();
       
       const { error } = await supabase
         .from('saved_drafts')
@@ -137,17 +128,8 @@ export const DraftsProvider: React.FC<{
       console.log('Fetching drafts for user ID:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
+      // Refresh Supabase session to ensure RLS policies work
+      await refreshSupabaseSession();
       
       // Use UUID filtering for Supabase
       const { data, error } = await supabase
@@ -170,7 +152,7 @@ export const DraftsProvider: React.FC<{
     } finally {
       setLoadingSavedDrafts(false);
     }
-  }, [user, lastFetchAttempt, getToken]);
+  }, [user, lastFetchAttempt, refreshSupabaseSession]);
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
@@ -200,17 +182,8 @@ export const DraftsProvider: React.FC<{
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
       
-      // Ensure we have a valid JWT token for RLS policies
-      const token = await getToken({ template: "supabase" });
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Make sure Supabase client has the token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ""
-      });
+      // Refresh Supabase session to ensure RLS policies work
+      await refreshSupabaseSession();
       
       const { error } = await supabase
         .from('saved_drafts')
