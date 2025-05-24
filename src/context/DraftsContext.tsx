@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
@@ -45,9 +44,9 @@ export const DraftsProvider: React.FC<{
     isLoading: loadingSavedDrafts,
     error: queryError,
     refetch: refetchDrafts
-  } = useQuery<SavedDraft[], Error>(
-    ["savedDrafts", user?.id],
-    async () => {
+  } = useQuery<SavedDraft[], Error>({
+    queryKey: ["savedDrafts", user?.id],
+    queryFn: async () => {
       if (!user) return [];
       const supabaseUserId = clerkToSupabaseId(user.id);
       const { data, error } = await supabase
@@ -58,11 +57,9 @@ export const DraftsProvider: React.FC<{
       if (error) throw new Error(error.message);
       return data || [];
     },
-    {
-      enabled: !!user,
-      staleTime: 1000 * 60 * 5
-    }
-  );
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5
+  });
 
   useEffect(() => {
     if (queryError) {
