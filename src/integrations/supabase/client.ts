@@ -38,7 +38,8 @@ export const updateSupabaseAuthWithClerkSession = async (
       // Set the Clerk JWT as the Supabase auth token
       const { data, error } = await supabase.auth.setSession({
         access_token: clerkToken,
-        refresh_token: ""
+        // Use the same value for refresh_token since Clerk doesn't provide one
+        refresh_token: clerkToken
       });
 
       if (error || !data?.session) {
