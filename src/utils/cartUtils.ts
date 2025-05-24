@@ -20,6 +20,7 @@ export const saveCartToSupabase = async (
       
     if (fetchError) {
       console.error('Error fetching existing carts:', fetchError);
+      toast.error('Failed to save cart');
       return;
     }
       
@@ -36,6 +37,7 @@ export const saveCartToSupabase = async (
         
       if (updateError) {
         console.error('Error updating cart:', updateError);
+        toast.error('Failed to save cart');
         return;
       }
       
@@ -52,6 +54,7 @@ export const saveCartToSupabase = async (
         
       if (createError) {
         console.error('Error creating cart:', createError);
+        toast.error('Failed to save cart');
         return;
       }
       
@@ -59,6 +62,7 @@ export const saveCartToSupabase = async (
     }
   } catch (error) {
     console.error('Error saving cart:', error);
+    toast.error('Failed to save cart');
   }
 };
 

@@ -68,32 +68,47 @@ export const DraftsProvider: React.FC<{
       
 
       
-      const { error } = await supabase
-        .from('saved_drafts')
-        .insert({
-          user_id: supabaseUserId,
-          title: draftTitle,
-          conception_type: bookData.conceptionType,
-          family_structure: bookData.familyStructure,
-          child_name: bookData.childName || null,
-          child_age: bookData.childAge || null,
-          used_donor_egg: bookData.usedDonorEgg,
-          used_donor_sperm: bookData.usedDonorSperm,
-          used_donor_embryo: bookData.usedDonorEmbryo,
-          used_surrogate: bookData.usedSurrogate
-        });
-        
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
+      let attempt = 0;
+      const maxAttempts = 2;
+      let lastError: any = null;
+
+      while (attempt < maxAttempts) {
+        const { error } = await supabase
+          .from('saved_drafts')
+          .insert({
+            user_id: supabaseUserId,
+            title: draftTitle,
+            conception_type: bookData.conceptionType,
+            family_structure: bookData.familyStructure,
+            child_name: bookData.childName || null,
+            child_age: bookData.childAge || null,
+            used_donor_egg: bookData.usedDonorEgg,
+            used_donor_sperm: bookData.usedDonorSperm,
+            used_donor_embryo: bookData.usedDonorEmbryo,
+            used_surrogate: bookData.usedSurrogate
+          });
+
+        if (!error) {
+          toast.success("Draft saved successfully");
+          await fetchSavedDrafts();
+          return;
+        }
+
+        lastError = error;
+        console.error(`Error saving draft (attempt ${attempt + 1}):`, error);
+        attempt += 1;
+
+        if (attempt < maxAttempts) {
+          await new Promise(res => setTimeout(res, 1000));
+        }
       }
-        
-      toast.success("Draft saved successfully");
-      
-      // Update local state
-      await fetchSavedDrafts();
+
+      if (lastError) {
+        throw lastError;
+      }
     } catch (error: any) {
       console.error('Error saving draft:', error);
+      setError(error.message || "Error saving draft");
       toast.error(error.message || "Error saving draft");
     }
   };
@@ -196,6 +211,7 @@ export const DraftsProvider: React.FC<{
       toast.success("Draft deleted successfully");
     } catch (error: any) {
       console.error('Error deleting draft:', error);
+      setError(error.message || "Error deleting draft");
       toast.error(error.message || "Error deleting draft");
     }
   };
