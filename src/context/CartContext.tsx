@@ -19,7 +19,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loadingCart, setLoadingCart] = useState(false);
   const [cartErrorShown, setCartErrorShown] = useState(false);
-  const { user, refreshSupabaseSession } = useAuth();
+  const { user } = useAuth();
 
   // Load cart from Supabase when user signs in
   useEffect(() => {
@@ -36,8 +36,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoadingCart(true);
       setCartErrorShown(false);
 
-      await refreshSupabaseSession();
-      
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Loading cart for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
@@ -78,7 +76,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If user is logged in, try to save cart to Supabase
       if (user) {
         const supabaseUserId = clerkToSupabaseId(user.id);
-        await refreshSupabaseSession();
         await saveCartToSupabase(supabaseUserId, updatedCart);
       }
     }
@@ -91,7 +88,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      await refreshSupabaseSession();
       await saveCartToSupabase(supabaseUserId, updatedCart);
     }
   };
@@ -102,7 +98,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If user is logged in, update saved cart
     if (user) {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      await refreshSupabaseSession();
       await saveCartToSupabase(supabaseUserId, []);
     }
   };
@@ -116,7 +111,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
-      await refreshSupabaseSession();
       await saveCartWithNameToSupabase(supabaseUserId, name, cartItems);
     } catch (error) {
       // Error handling is done in the utility function

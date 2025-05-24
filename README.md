@@ -7,11 +7,12 @@
 ### Environment variables
 
 Create a `.env` file (or copy `.env.example`) and set the following values so the
-app can connect to your Supabase project:
+app can connect to your Supabase and Clerk projects:
 
 ```bash
 VITE_SUPABASE_URL=<your-supabase-url>
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
+VITE_CLERK_PUBLISHABLE_KEY=<your-clerk-publishable-key>
 ```
 
 ## How can I edit this code?
