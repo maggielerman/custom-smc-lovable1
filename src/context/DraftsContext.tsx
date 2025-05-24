@@ -1,10 +1,11 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 import { clerkToSupabaseId } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface DraftsContextProps {
   savedDrafts: SavedDraft[];
@@ -30,15 +31,46 @@ interface DraftsContextProps {
 
 const DraftsContext = createContext<DraftsContextProps | undefined>(undefined);
 
-export const DraftsProvider: React.FC<{ 
+export const DraftsProvider: React.FC<{
   children: React.ReactNode;
   onLoadDraft: (draft: SavedDraft) => void;
 }> = ({ children, onLoadDraft }) => {
-  const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
-  const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
+  const [error, setError] = React.useState<string | null>(null);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch saved drafts using React Query for caching
+  const {
+    data: savedDrafts = [],
+    isLoading: loadingSavedDrafts,
+    error: queryError,
+    refetch: refetchDrafts
+  } = useQuery<SavedDraft[], Error>(
+    ["savedDrafts", user?.id],
+    async () => {
+      if (!user) return [];
+      const supabaseUserId = clerkToSupabaseId(user.id);
+      const { data, error } = await supabase
+        .from("saved_drafts")
+        .select("*")
+        .eq("user_id", supabaseUserId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    {
+      enabled: !!user,
+      staleTime: 1000 * 60 * 5
+    }
+  );
+
+  useEffect(() => {
+    if (queryError) {
+      setError(queryError.message);
+    } else {
+      setError(null);
+    }
+  }, [queryError]);
 
   // Save book draft to Supabase
   const saveDraft = async (
@@ -90,7 +122,7 @@ export const DraftsProvider: React.FC<{
 
         if (!error) {
           toast.success("Draft saved successfully");
-          await fetchSavedDrafts();
+          await queryClient.invalidateQueries({ queryKey: ["savedDrafts", user.id] });
           return;
         }
 
@@ -113,59 +145,10 @@ export const DraftsProvider: React.FC<{
     }
   };
   
-  // Fetch user's saved drafts with debounce and error handling
-  const fetchSavedDrafts = useCallback(async (): Promise<void> => {
-    // Don't fetch if we don't have a user
-    if (!user) {
-      console.log("No user available, clearing drafts");
-      setSavedDrafts([]);
-      setLoadingSavedDrafts(false);
-      setError(null);
-      return;
-    }
-    
-    // Prevent multiple rapid fetch attempts
-    const now = Date.now();
-    if (now - lastFetchAttempt < 3000) {
-      console.log("Fetch attempt too soon after last attempt, skipping");
-      return;
-    }
-    
-    setLastFetchAttempt(now);
-    
-    try {
-      setLoadingSavedDrafts(true);
-      setError(null);
-      
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      console.log('Fetching drafts for user ID:', user.id);
-      console.log('Using Supabase user ID:', supabaseUserId);
-      
-
-      
-      // Use UUID filtering for Supabase
-      const { data, error } = await supabase
-        .from('saved_drafts')
-        .select('*')
-        .eq('user_id', supabaseUserId)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error('Error fetching drafts:', error);
-        setError(error.message || "Failed to load your saved drafts");
-        throw error;
-      }
-      
-      console.log('Fetched drafts:', data);
-      setSavedDrafts(data || []);
-    } catch (error: any) {
-      console.error('Error fetching drafts:', error);
-      setError(error.message || "Failed to load your saved drafts");
-    } finally {
-      setLoadingSavedDrafts(false);
-    }
-  }, [user, lastFetchAttempt]);
+  // Manual refetch helper so components can trigger an update
+  const fetchSavedDrafts = async (): Promise<void> => {
+    await refetchDrafts();
+  };
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
@@ -176,7 +159,6 @@ export const DraftsProvider: React.FC<{
       });
     } else {
       console.log('No user available, clearing drafts');
-      setSavedDrafts([]);
       setError(null);
     }
   }, [fetchSavedDrafts, user]);
@@ -204,10 +186,9 @@ export const DraftsProvider: React.FC<{
         .eq('user_id', supabaseUserId);
         
       if (error) throw error;
-      
-      // Update local state
-      setSavedDrafts(savedDrafts.filter(draft => draft.id !== draftId));
-      
+
+      await queryClient.invalidateQueries({ queryKey: ["savedDrafts", user.id] });
+
       toast.success("Draft deleted successfully");
     } catch (error: any) {
       console.error('Error deleting draft:', error);
