@@ -6,6 +6,7 @@ export interface AuthContextType {
   loading: boolean;
   isLoaded: boolean;
   getToken: (options?: { template?: string }) => Promise<string | null>;
+  refreshSupabaseSession: () => Promise<void>;
   signUp: () => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;

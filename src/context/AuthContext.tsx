@@ -20,6 +20,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // State to track if components should re-render after auth changes
   const [authInitialized, setAuthInitialized] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
+  
+  // Helper to refresh the Supabase session with a new Clerk token
+  const refreshSupabaseSession = async () => {
+    try {
+      const token = await getToken({ template: "supabase" });
+      await updateSupabaseAuthWithClerkSession(token);
+    } catch (err) {
+      console.error("Failed to refresh Supabase session", err);
+    }
+  };
 
   // Determine if we're still loading auth data
   const loading = !isAuthLoaded || !isUserLoaded;
@@ -90,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoaded,
     // Pass the getToken method from Clerk's useAuth hook
     getToken,
+    refreshSupabaseSession,
     signUp: async () => {
       toast.error("Please use the sign up form");
     },

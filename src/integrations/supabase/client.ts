@@ -3,8 +3,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://yohlethqxunrvrqkjjsh.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaGxldGhxeHVucnZycWtqanNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NzAwMTEsImV4cCI6MjA2MjU0NjAxMX0.krRX1jHct8wVOLm-RrKMTHI5Vt0LcY96ebUSzWKhr70";
+// Load credentials from environment variables with sensible fallbacks.
+// These values are injected at build time by Vite when prefixed with `VITE_`.
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string) ||
+  "https://yohlethqxunrvrqkjjsh.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaGxldGhxeHVucnZycWtqanNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5NzAwMTEsImV4cCI6MjA2MjU0NjAxMX0.krRX1jHct8wVOLm-RrKMTHI5Vt0LcY96ebUSzWKhr70";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
