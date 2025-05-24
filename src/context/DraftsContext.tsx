@@ -38,7 +38,7 @@ export const DraftsProvider: React.FC<{
   const [loadingSavedDrafts, setLoadingSavedDrafts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchAttempt, setLastFetchAttempt] = useState(0);
-  const { user, refreshSupabaseSession } = useAuth();
+  const { user } = useAuth();
 
   // Save book draft to Supabase
   const saveDraft = async (
@@ -66,8 +66,7 @@ export const DraftsProvider: React.FC<{
       const supabaseUserId = clerkToSupabaseId(user.id);
       console.log('Saving draft with user ID:', supabaseUserId);
       
-      // Refresh Supabase session to ensure RLS policies work
-      await refreshSupabaseSession();
+
       
       const { error } = await supabase
         .from('saved_drafts')
@@ -128,8 +127,7 @@ export const DraftsProvider: React.FC<{
       console.log('Fetching drafts for user ID:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
-      // Refresh Supabase session to ensure RLS policies work
-      await refreshSupabaseSession();
+
       
       // Use UUID filtering for Supabase
       const { data, error } = await supabase
@@ -152,7 +150,7 @@ export const DraftsProvider: React.FC<{
     } finally {
       setLoadingSavedDrafts(false);
     }
-  }, [user, lastFetchAttempt, refreshSupabaseSession]);
+  }, [user, lastFetchAttempt]);
   
   // Add useEffect to fetch drafts when user changes
   useEffect(() => {
@@ -182,8 +180,7 @@ export const DraftsProvider: React.FC<{
     try {
       const supabaseUserId = clerkToSupabaseId(user.id);
       
-      // Refresh Supabase session to ensure RLS policies work
-      await refreshSupabaseSession();
+
       
       const { error } = await supabase
         .from('saved_drafts')

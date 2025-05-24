@@ -8,7 +8,7 @@ import {
 import { toast } from "sonner";
 import { AuthContextType } from "@/lib/auth/types";
 import { ensureProfileExists } from "@/lib/auth/clerk-helpers";
-import { updateSupabaseAuthWithClerkSession } from "@/integrations/supabase/client";
+import { supabase, updateSupabaseAuthWithClerkSession } from "@/integrations/supabase/client";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,8 +24,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Helper to refresh the Supabase session with a new Clerk token
   const refreshSupabaseSession = async () => {
     try {
-      const token = await getToken({ template: "supabase" });
-      await updateSupabaseAuthWithClerkSession(token);
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+
+      if (!session || expiresAt < Date.now() + 60_000) {
+        const token = await getToken({ template: "supabase" });
+        const success = await updateSupabaseAuthWithClerkSession(token);
+        if (!success) {
+          console.error("Failed to refresh Supabase session");
+        }
+      }
     } catch (err) {
       console.error("Failed to refresh Supabase session", err);
     }
