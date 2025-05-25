@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest",
-    "cy:open": "cypress open"
+    "cy:open": "cypress open",
+    "clean": "npm cache clean --force && rm -rf node_modules && rm -f package-lock.json && npm install"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.31.2",
