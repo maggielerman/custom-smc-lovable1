@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   useAuth as useClerkAuth, 
@@ -20,25 +21,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authInitialized, setAuthInitialized] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   
-  // Helper to refresh the Supabase session with a new Clerk token
-  const refreshSupabaseSession = async () => {
-    try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-
-      // The Supabase client's accessToken function handles token refresh automatically now.
-      // No need for explicit setSession here.
-      // We can still trigger a session refresh if needed by making a Supabase call,
-      // which will use the accessToken function.
-
-    } catch (err) {
-      console.error("Failed to refresh Supabase session", err);
-    }
-  };
-
   // Determine if we're still loading auth data
   const loading = !isAuthLoaded || !isUserLoaded;
   const isLoaded = isAuthLoaded && isUserLoaded;
@@ -46,59 +28,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Get user ID safely
   const userId = isSignedIn && user ? user.id : null;
 
-  // Effect to sync Clerk session with Supabase
-  useEffect(() => {
-    const syncAuthState = async () => {
-      if (isLoaded) {
-        // When using the accessToken function in the Supabase client,
-        // the token is automatically managed by the client for each request.
-        // No need for manual setSession based on Clerk token here.
-
-        if (!isSignedIn || !user) {
-           // Optionally clear Supabase session if user signs out. This might be redundant
-           // if the accessToken function returns null when not signed in.
-           // await supabase.auth.setSession({ access_token: "", refresh_token: "" });
-           console.log("Clerk user signed out. Supabase client will use null token.");
-           setProfileData(null);
-        } else {
-           console.log("Clerk user signed in. Supabase client will use Clerk token automatically.");
-           // The ensureProfileExists call should now work because the Supabase client
-           // is configured to send the Clerk token, and RLS (once updated) will use it.
-        }
-
+  // Helper to test Supabase connection with current auth state
+  const testSupabaseConnection = async () => {
+    try {
+      console.log("Testing Supabase connection...");
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, clerk_id')
+        .limit(1);
+      
+      if (error) {
+        console.error("Supabase connection test failed:", error);
+      } else {
+        console.log("Supabase connection test successful");
       }
-    };
+    } catch (err) {
+      console.error("Supabase connection test error:", err);
+    }
+  };
 
-    syncAuthState();
-  }, [isLoaded, isSignedIn, user, getToken]); // Keep getToken as a dependency if ensureProfileExists or other logic directly uses it later
-
-  // Effect to handle auth state changes and force re-renders
+  // Effect to handle auth state changes and profile creation
   useEffect(() => {
     if (isLoaded) {
       setAuthInitialized(true);
       console.log("Auth initialized, signed in:", isSignedIn);
       
+      // Test Supabase connection when auth state changes
+      testSupabaseConnection();
+      
       // If user is signed in, ensure their profile exists in Supabase
       if (isSignedIn && user) {
+        console.log("User signed in, ensuring profile exists:", user.id);
+        
         // Add some delay to ensure Clerk has fully processed the authentication
         const timer = setTimeout(async () => {
-          console.log("Ensuring profile exists for user:", user.id);
           try {
             const profile = await ensureProfileExists(user);
-            setProfileData(profile);
+            if (profile) {
+              setProfileData(profile);
+              console.log("Profile synchronized successfully");
+            } else {
+              console.error("Failed to synchronize profile");
+            }
           } catch (err) {
             console.error("Failed to ensure profile exists:", err);
             toast.error("There was a problem with your profile. Please try logging out and back in.");
           }
-        }, 1000); // Increased delay for better reliability
+        }, 1500); // Increased delay for better reliability
         
         return () => clearTimeout(timer);
+      } else {
+        // Clear profile data when user signs out
+        setProfileData(null);
       }
     }
   }, [isLoaded, isSignedIn, user]);
 
-  // Since we're using Clerk components, we don't need explicit functions for signUp, signIn
-  // We only need signOut which might be called from nav/account areas
+  // Function to refresh authentication state
+  const refreshSupabaseSession = async () => {
+    if (isSignedIn && user) {
+      console.log("Refreshing Supabase session...");
+      await testSupabaseConnection();
+    }
+  };
+
   const value = {
     session: isSignedIn ? { user } : null,
     user: isSignedIn ? user : null,
@@ -106,7 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profileData: profileData,
     loading,
     isLoaded,
-    // Pass the getToken method from Clerk's useAuth hook
     getToken,
     refreshSupabaseSession,
     signUp: async () => {
@@ -117,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     signOut: async () => {
       try {
+        console.log("Signing out user...");
         await clerk.signOut();
         setProfileData(null);
         toast.info("You have been signed out");

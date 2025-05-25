@@ -133,15 +133,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "family_members_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "profiles",
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       family_stories: {
         Row: {
@@ -165,15 +157,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "family_stories_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "profiles",
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -236,15 +220,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "saved_carts_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "profiles",
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       saved_drafts: {
         Row: {
@@ -292,15 +268,7 @@ export type Database = {
           used_surrogate?: boolean | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "saved_drafts_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "profiles",
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -321,50 +289,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "profiles",
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wrappers_fdw_stats: {
-        Row: {
-          bytes_in: number | null
-          bytes_out: number | null
-          create_times: number | null
-          created_at: string
-          fdw_name: string
-          metadata: Json | null
-          rows_in: number | null
-          rows_out: number | null
-          updated_at: string
-        }
-        Insert: {
-          bytes_in?: number | null
-          bytes_out?: number | null
-          create_times?: number | null
-          created_at?: string
-          fdw_name: string
-          metadata?: Json | null
-          rows_in?: number | null
-          rows_out?: number | null
-          updated_at?: string
-        }
-        Update: {
-          bytes_in?: number | null
-          bytes_out?: number | null
-          create_times?: number | null
-          created_at?: string
-          fdw_name?: string
-          metadata?: Json | null
-          rows_in?: number | null
-          rows_out?: number | null
-          updated_at?: string
-        }
         Relationships: []
       }
     }
@@ -372,107 +296,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      airtable_fdw_handler: {
+      get_current_user_id: {
         Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      airtable_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      airtable_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      auth0_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      auth0_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      auth0_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      big_query_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      big_query_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      big_query_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      click_house_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      click_house_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      click_house_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      cognito_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      cognito_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      cognito_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      firebase_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      firebase_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      firebase_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
+        Returns: string
       }
       has_role: {
         Args: {
@@ -481,128 +307,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      hello_world_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      hello_world_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      hello_world_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
       is_current_clerk_user: {
         Args: Record<PropertyKey, never> | { profile_id: string }
         Returns: boolean
-      }
-      logflare_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      logflare_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      logflare_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      mssql_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      mssql_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      mssql_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      redis_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      redis_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      redis_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      s3_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      s3_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      s3_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      stripe_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      stripe_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      stripe_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
-      }
-      wasm_fdw_handler: {
-        Args: Record<PropertyKey, never>
-        Returns: unknown
-      }
-      wasm_fdw_meta: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          name: string
-          version: string
-          author: string
-          website: string
-        }[]
-      }
-      wasm_fdw_validator: {
-        Args: { options: string[]; catalog: unknown }
-        Returns: undefined
       }
     }
     Enums: {

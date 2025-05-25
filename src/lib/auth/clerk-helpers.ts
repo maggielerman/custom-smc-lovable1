@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { clerkToSupabaseId } from "@/lib/utils";
@@ -34,15 +33,15 @@ export const ensureProfileExists = async (user: any) => {
       avatarUrl
     });
     
-    // First check if profile exists
+    // First check if profile exists by clerk_id (more reliable than UUID)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url, email, clerk_id, updated_at')
-      .eq('id', supabaseId)
+      .eq('clerk_id', clerkId)
       .maybeSingle();
       
     if (error && error.code !== 'PGRST116') {
-      console.error("Error checking profile:", error);
+      console.error("Error checking profile by clerk_id:", error);
       return null;
     }
     
@@ -51,7 +50,7 @@ export const ensureProfileExists = async (user: any) => {
     
     // If profile doesn't exist, create it
     if (!data) {
-      console.log("Profile not found. Creating new profile with ID:", supabaseId);
+      console.log("Profile not found. Creating new profile with Clerk ID:", clerkId);
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert({
@@ -80,12 +79,11 @@ export const ensureProfileExists = async (user: any) => {
       data.first_name !== firstName || 
       data.last_name !== lastName || 
       data.avatar_url !== avatarUrl ||
-      data.email !== primaryEmail ||
-      data.clerk_id !== clerkId
+      data.email !== primaryEmail
     ) {
       console.log("Synchronizing profile data:", { 
         current: data,
-        new: { firstName, lastName, avatarUrl, email: primaryEmail, clerkId }
+        new: { firstName, lastName, avatarUrl, email: primaryEmail }
       });
       
       const { data: updatedProfile, error: updateError } = await supabase
@@ -95,10 +93,9 @@ export const ensureProfileExists = async (user: any) => {
           last_name: lastName,
           avatar_url: avatarUrl,
           email: primaryEmail,
-          clerk_id: clerkId,
           updated_at: new Date().toISOString()
         })
-        .eq('id', supabaseId)
+        .eq('clerk_id', clerkId)
         .select()
         .single();
         
