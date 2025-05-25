@@ -21,8 +21,8 @@ jest.mock('@clerk/clerk-react', () => ({
       emailAddresses: [{ emailAddress: 'test@example.com' }],
     },
   }),
-  SignIn: ({ children }: { children?: React.ReactNode }) => <div data-testid="clerk-sign-in">{children}</div>,
-  SignUp: ({ children }: { children?: React.ReactNode }) => <div data-testid="clerk-sign-up">{children}</div>,
+  SignIn: (props: any) => React.createElement('div', { 'data-testid': 'clerk-sign-in' }, props.children),
+  SignUp: (props: any) => React.createElement('div', { 'data-testid': 'clerk-sign-up' }, props.children),
 }));
 
 // Mock Supabase
