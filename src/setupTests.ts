@@ -1,5 +1,6 @@
 
 import '@testing-library/jest-dom';
+import React from 'react';
 
 // Mock Clerk
 jest.mock('@clerk/clerk-react', () => ({

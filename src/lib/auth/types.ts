@@ -3,6 +3,7 @@ export interface AuthContextType {
   session: { user: any } | null;
   user: any | null;
   userId: string | null;
+  profileData: any | null;
   loading: boolean;
   isLoaded: boolean;
   getToken: (options?: { template?: string }) => Promise<string | null>;
