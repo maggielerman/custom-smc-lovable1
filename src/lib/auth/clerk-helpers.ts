@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { clerkToSupabaseId } from "@/lib/utils";
@@ -14,7 +15,15 @@ export const ensureProfileExists = async (user: any) => {
   
   try {
     const clerkId = user.id;
-    const supabaseId = clerkToSupabaseId(clerkId);
+    let supabaseId: string;
+    
+    try {
+      supabaseId = clerkToSupabaseId(clerkId);
+    } catch (error) {
+      console.error("Failed to convert Clerk ID to Supabase UUID:", error);
+      toast.error("Error with user identification. Please try logging out and back in.");
+      return null;
+    }
     
     // Get primary email address from the user object
     const primaryEmail = user.emailAddresses?.find((email: any) => 
@@ -67,7 +76,14 @@ export const ensureProfileExists = async (user: any) => {
         
       if (createError) {
         console.error("Failed to create profile:", createError);
-        toast.error("Failed to set up your profile. Please try logging out and back in.");
+        
+        // Check if it's a UUID format error
+        if (createError.message?.includes('invalid input syntax for type uuid')) {
+          console.error("UUID conversion failed for Clerk ID:", clerkId);
+          toast.error("Error creating your profile. Please contact support.");
+        } else {
+          toast.error("Failed to set up your profile. Please try logging out and back in.");
+        }
         return null;
       } else {
         console.log("Profile created successfully");
