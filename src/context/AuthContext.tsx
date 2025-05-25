@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   useAuth as useClerkAuth, 
@@ -8,7 +7,7 @@ import {
 import { toast } from "sonner";
 import { AuthContextType } from "@/lib/auth/types";
 import { ensureProfileExists } from "@/lib/auth/clerk-helpers";
-import { supabase, updateSupabaseAuthWithClerkSession } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -30,13 +29,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
 
-      if (!session || expiresAt < Date.now() + 60_000) {
-        const token = await getToken({ template: "supabase" });
-        const success = await updateSupabaseAuthWithClerkSession(token);
-        if (!success) {
-          console.error("Failed to refresh Supabase session");
-        }
-      }
+      // The Supabase client's accessToken function handles token refresh automatically now.
+      // No need for explicit setSession here.
+      // We can still trigger a session refresh if needed by making a Supabase call,
+      // which will use the accessToken function.
+
     } catch (err) {
       console.error("Failed to refresh Supabase session", err);
     }
@@ -53,27 +50,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const syncAuthState = async () => {
       if (isLoaded) {
-        try {
-          if (isSignedIn && user) {
-            // Get JWT token from Clerk
-            const token = await getToken({ template: "supabase" });
-            // Update Supabase auth with the Clerk JWT
-            await updateSupabaseAuthWithClerkSession(token);
-            console.log("Supabase auth updated with Clerk session");
-          } else {
-            // Clear Supabase session when signed out
-            await updateSupabaseAuthWithClerkSession(null);
-            console.log("Cleared Supabase auth session");
-            setProfileData(null);
-          }
-        } catch (error) {
-          console.error("Failed to sync Clerk session with Supabase:", error);
+        // When using the accessToken function in the Supabase client,
+        // the token is automatically managed by the client for each request.
+        // No need for manual setSession based on Clerk token here.
+
+        if (!isSignedIn || !user) {
+           // Optionally clear Supabase session if user signs out. This might be redundant
+           // if the accessToken function returns null when not signed in.
+           // await supabase.auth.setSession({ access_token: "", refresh_token: "" });
+           console.log("Clerk user signed out. Supabase client will use null token.");
+           setProfileData(null);
+        } else {
+           console.log("Clerk user signed in. Supabase client will use Clerk token automatically.");
+           // The ensureProfileExists call should now work because the Supabase client
+           // is configured to send the Clerk token, and RLS (once updated) will use it.
         }
+
       }
     };
 
     syncAuthState();
-  }, [isLoaded, isSignedIn, user, getToken]);
+  }, [isLoaded, isSignedIn, user, getToken]); // Keep getToken as a dependency if ensureProfileExists or other logic directly uses it later
 
   // Effect to handle auth state changes and force re-renders
   useEffect(() => {
