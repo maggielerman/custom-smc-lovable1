@@ -46,6 +46,8 @@ export default function ProfileOverview() {
       try {
         const supabaseUserId = getSafeSupabaseId(user.id);
         if (!supabaseUserId) {
+          console.error("Failed to get Supabase user ID");
+          toast.error("Error with user identification. Please try logging out and back in.");
           setLoading(false);
           return;
         }
@@ -140,6 +142,7 @@ export default function ProfileOverview() {
       setUpdating(true);
       const supabaseUserId = getSafeSupabaseId(user.id);
       if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
         setUpdating(false);
         return;
       }

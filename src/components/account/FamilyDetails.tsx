@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Users, Plus, X } from "lucide-react";
-import { clerkToSupabaseId } from "@/lib/utils";
+import { getSafeSupabaseId } from "@/lib/auth/clerk-helpers";
 
 interface FamilyMember {
   id: string;
@@ -37,7 +37,7 @@ export default function FamilyDetails() {
   // Convert Clerk userId to Supabase compatible UUID
   const getSupabaseUserId = () => {
     if (!userId) return null;
-    return clerkToSupabaseId(userId);
+    return getSafeSupabaseId(userId);
   };
 
   // Load family members from database
@@ -48,6 +48,11 @@ export default function FamilyDetails() {
       try {
         setLoading(true);
         const supabaseUserId = getSupabaseUserId();
+        if (!supabaseUserId) {
+          console.error("Failed to get Supabase user ID");
+          toast.error("Failed to load family members");
+          return;
+        }
         
         const { data, error } = await supabase
           .from('family_members')
@@ -80,6 +85,11 @@ export default function FamilyDetails() {
       try {
         setLoadingStory(true);
         const supabaseUserId = getSupabaseUserId();
+        if (!supabaseUserId) {
+          console.error("Failed to get Supabase user ID");
+          toast.error("Failed to load family story");
+          return;
+        }
         
         const { data, error } = await supabase
           .from('family_stories')
@@ -128,6 +138,10 @@ export default function FamilyDetails() {
     try {
       setSaving(true);
       const supabaseUserId = getSupabaseUserId();
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
       
       const newMemberData = {
         user_id: supabaseUserId,
@@ -214,6 +228,10 @@ export default function FamilyDetails() {
     try {
       setSavingStory(true);
       const supabaseUserId = getSupabaseUserId();
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
       
       // First check if a story already exists
       const { data: existingStory } = await supabase

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
-import { clerkToSupabaseId } from "@/lib/utils";
+import { getSafeSupabaseId } from "@/lib/auth/clerk-helpers";
 import { CartContextType } from "@/types/cartTypes";
 import {
   saveCartToSupabase,
@@ -36,7 +36,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoadingCart(true);
       setCartErrorShown(false);
 
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        console.error('Failed to get Supabase user ID');
+        if (!cartErrorShown) {
+          toast.error("Failed to load your cart");
+          setCartErrorShown(true);
+        }
+        return;
+      }
+      
       console.log('Loading cart for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
@@ -75,8 +84,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If user is logged in, try to save cart to Supabase
       if (user) {
-        const supabaseUserId = clerkToSupabaseId(user.id);
-        await saveCartToSupabase(supabaseUserId, updatedCart);
+        const supabaseUserId = getSafeSupabaseId(user.id);
+        if (supabaseUserId) {
+          await saveCartToSupabase(supabaseUserId, updatedCart);
+        }
       }
     }
   };
@@ -87,8 +98,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // If user is logged in, update saved cart
     if (user) {
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      await saveCartToSupabase(supabaseUserId, updatedCart);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (supabaseUserId) {
+        await saveCartToSupabase(supabaseUserId, updatedCart);
+      }
     }
   };
   
@@ -97,8 +110,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // If user is logged in, update saved cart
     if (user) {
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      await saveCartToSupabase(supabaseUserId, []);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (supabaseUserId) {
+        await saveCartToSupabase(supabaseUserId, []);
+      }
     }
   };
 
@@ -110,7 +125,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
+      
       await saveCartWithNameToSupabase(supabaseUserId, name, cartItems);
     } catch (error) {
       // Error handling is done in the utility function

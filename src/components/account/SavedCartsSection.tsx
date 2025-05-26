@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { CartItem } from "@/types/bookTypes";
 import { Json } from "@/integrations/supabase/types";
-import { clerkToSupabaseId } from "@/lib/utils";
+import { getSafeSupabaseId } from "@/lib/auth/clerk-helpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SavedCart {
@@ -46,8 +46,18 @@ export default function SavedCartsSection() {
         return;
       }
       
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      // Convert Clerk ID to UUID format for Supabase using the safe helper
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        setError("Failed to load your saved carts");
+        console.error("Failed to get Supabase user ID");
+        if (!errorShown) {
+          toast.error("Failed to load your saved carts");
+          setErrorShown(true);
+        }
+        return;
+      }
+      
       console.log('Fetching saved carts for user:', user.id);
       console.log('Using Supabase user ID:', supabaseUserId);
       
@@ -101,7 +111,11 @@ export default function SavedCartsSection() {
     try {
       if (!user) return;
       
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
       
       const { error } = await supabase
         .from('saved_carts')

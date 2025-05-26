@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SavedDraft, ConceptionType, FamilyStructure } from "@/types/bookTypes";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
-import { clerkToSupabaseId } from "@/lib/utils";
+import { getSafeSupabaseId } from "@/lib/auth/clerk-helpers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface DraftsContextProps {
@@ -48,12 +49,20 @@ export const DraftsProvider: React.FC<{
     queryKey: ["savedDrafts", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const supabaseUserId = clerkToSupabaseId(user.id);
+      
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        throw new Error("Failed to convert user ID");
+      }
+      
+      console.log('Fetching drafts for Supabase user ID:', supabaseUserId);
+      
       const { data, error } = await supabase
         .from("saved_drafts")
         .select("*")
         .eq("user_id", supabaseUserId)
         .order("created_at", { ascending: false });
+      
       if (error) throw new Error(error.message);
       return data || [];
     },
@@ -91,11 +100,14 @@ export const DraftsProvider: React.FC<{
     try {
       const draftTitle = title || (bookData.childName ? `${bookData.childName}'s Story` : "Untitled Draft");
       
-      // Convert Clerk ID to UUID format for Supabase
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      console.log('Saving draft with user ID:', supabaseUserId);
+      // Convert Clerk ID to UUID format for Supabase using the safe helper
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
       
-
+      console.log('Saving draft with Supabase user ID:', supabaseUserId);
       
       let attempt = 0;
       const maxAttempts = 2;
@@ -172,9 +184,11 @@ export const DraftsProvider: React.FC<{
     if (!user) return;
     
     try {
-      const supabaseUserId = clerkToSupabaseId(user.id);
-      
-
+      const supabaseUserId = getSafeSupabaseId(user.id);
+      if (!supabaseUserId) {
+        toast.error("Error with user identification. Please try logging out and back in.");
+        return;
+      }
       
       const { error } = await supabase
         .from('saved_drafts')
