@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+
+import { render, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/dom';
 import Profile from '../Profile';
 import { supabase } from '@/integrations/supabase/client';
 
