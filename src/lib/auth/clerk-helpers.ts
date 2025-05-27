@@ -19,6 +19,7 @@ export const ensureProfileExists = async (user: any) => {
     
     try {
       supabaseId = clerkToSupabaseId(clerkId);
+      console.log("ensureProfileExists: Converted Clerk ID", clerkId, "to Supabase ID", supabaseId);
     } catch (error) {
       console.error("Failed to convert Clerk ID to Supabase UUID:", error);
       toast.error("Error with user identification. Please try logging out and back in.");
@@ -172,10 +173,14 @@ export const getSafeSupabaseId = (clerkId: string): string | null => {
     return null;
   }
   
+  console.log("getSafeSupabaseId: Converting Clerk ID", clerkId);
+  
   try {
-    return clerkToSupabaseId(clerkId);
+    const supabaseId = clerkToSupabaseId(clerkId);
+    console.log("getSafeSupabaseId: Successfully converted to", supabaseId);
+    return supabaseId;
   } catch (error) {
-    console.error("Failed to convert Clerk ID to Supabase ID:", error);
+    console.error("getSafeSupabaseId: Failed to convert Clerk ID to Supabase ID:", error);
     toast.error("Error with user identification. Please refresh the page.");
     return null;
   }

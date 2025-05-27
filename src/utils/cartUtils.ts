@@ -10,6 +10,10 @@ export const saveCartToSupabase = async (
   items: CartItem[]
 ): Promise<void> => {
   try {
+    console.log("saveCartToSupabase called with userId:", userId);
+    console.log("saveCartToSupabase userId type:", typeof userId);
+    console.log("saveCartToSupabase userId length:", userId.length);
+    
     const totalAmount = calculateCartTotal(items);
     
     // Check if user has a saved cart
@@ -72,6 +76,9 @@ export const saveCartWithNameToSupabase = async (
   name: string,
   items: CartItem[]
 ): Promise<void> => {
+  console.log("saveCartWithNameToSupabase called with userId:", userId);
+  console.log("saveCartWithNameToSupabase userId type:", typeof userId);
+  
   if (items.length === 0) {
     toast.error("Cannot save an empty cart");
     throw new Error("Cannot save an empty cart");
@@ -106,6 +113,10 @@ export const loadCartFromSupabase = async (
   userId: string
 ): Promise<{ items: CartItem[] | null; error: Error | null }> => {
   try {
+    console.log("loadCartFromSupabase called with userId:", userId);
+    console.log("loadCartFromSupabase userId type:", typeof userId);
+    console.log("loadCartFromSupabase userId length:", userId.length);
+    
     const { data, error } = await supabase
       .from('saved_carts')
       .select('*')
