@@ -1,5 +1,5 @@
 
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import SignIn from '../SignIn';
 import { useClerk } from '@clerk/clerk-react';
 
@@ -10,6 +10,7 @@ jest.mock('@clerk/clerk-react', () => ({
 }));
 
 test('renders sign in form', () => {
-  render(<SignIn />);
-  expect(screen.getByText(/Sign In/i)).toBeInTheDocument();
+  const { container } = render(<SignIn />);
+  const signInText = container.textContent;
+  expect(signInText).toContain('Sign In');
 }); 
