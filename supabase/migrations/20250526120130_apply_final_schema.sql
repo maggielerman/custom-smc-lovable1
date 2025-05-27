@@ -115,6 +115,21 @@ alter table public.family_members ENABLE ROW LEVEL SECURITY;
 alter table public.family_stories ENABLE ROW level security;
 alter table public.user_roles ENABLE ROW LEVEL SECURITY;
 
+-- Helper function: public.has_role (from 1001, updated by 1009)
+-- Recreate function to accept text user_id
+drop function if exists public.has_role(uuid, public.app_role);
+create or replace function public.has_role(_user_id text, _role public.app_role)
+returns boolean
+language sql stable security definer
+as $$
+  select exists (
+    select 1
+    from public.user_roles
+    where user_id = _user_id
+      and role    = _role
+  );
+$$;
+
 -- Policies using auth.jwt()->>'sub' (from 1001, 1003, 1006, 1007, 1008)
 
 -- Profiles: owner can read/write, owner can insert
@@ -179,19 +194,4 @@ drop policy if exists "Service role full access to user roles" on public.user_ro
 create policy "Service role full access to user roles" on public.user_roles
   as permissive for all
   to service_role
-  using (true);
-
--- Helper function: public.has_role (from 1001, updated by 1009)
--- Recreate function to accept text user_id
-drop function if exists public.has_role(uuid, public.app_role);
-create or replace function public.has_role(_user_id text, _role public.app_role)
-returns boolean
-language sql stable security definer
-as $$
-  select exists (
-    select 1
-    from public.user_roles
-    where user_id = _user_id
-      and role    = _role
-  );
-$$; 
+  using (true); 
