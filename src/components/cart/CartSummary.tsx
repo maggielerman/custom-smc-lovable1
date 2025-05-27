@@ -1,13 +1,11 @@
 
 import React from "react";
-import { useBookContext } from "@/context/BookContext";
+import { useCart } from "@/context/CartContext";
 import ProductSchema from "@/components/seo/ProductSchema";
 
 const CartSummary: React.FC = () => {
-  const { cartItems } = useBookContext();
+  const { cartItems, cartTotal } = useCart();
   
-  // Convert cents to dollars for display
-  const cartTotal = cartItems.reduce((total, item) => total + item.price, 0) / 100;
   const shippingCost = 5.00;
   const total = cartTotal + shippingCost;
 

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useBookContext } from "@/context/BookContext";
+import { useCart } from "@/context/CartContext";
 import {
   Sheet,
   SheetContent,
@@ -9,7 +9,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, X } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartItem from "./CartItem";
 import CartSummary from "./CartSummary";
@@ -19,14 +19,13 @@ interface CartProps {
 }
 
 const Cart: React.FC<CartProps> = ({ className }) => {
-  const { cartItems, cartCount, openCheckout } = useBookContext();
+  const { cartItems, cartCount } = useCart();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const handleCheckout = () => {
     setIsOpen(false);
-    setTimeout(() => {
-      openCheckout();
-    }, 300);
+    // You can implement checkout logic here or navigate to checkout page
+    console.log("Proceeding to checkout with items:", cartItems);
   };
 
   return (
